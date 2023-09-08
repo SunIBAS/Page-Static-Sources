@@ -8,6 +8,6 @@
 | [ndsolve](./ndsolve/index.html) | 使用JS 实现 Matlab 的 ndsolve  |
 | [PDF](./PDF/index.html) | 可用于自定义打印效果的图片转PDF工具 |
 | [sunibas.cn.utils](./sunibas.cn.utils/index.html) | 我自己写的一些工具 |
-| [translate](./trans/index.html) | 翻译辅助工具 |
+| [translate](./trans/trans.html) | 翻译辅助工具 |
 | [map_fixed](./map_fixed/index.html) | 用于手动校准”地图图片“的工具 |
 | [vue-layui](./vue-layui/index.html) | 使用 vue 和 layui 编写的框架  |
