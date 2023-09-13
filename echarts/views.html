@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="views-style.css">
+  <title>侧边缩回动画</title>
+</head>
+<body>
+<div class="container">
+  <div class="sidebar open">
+    <button id="draw">🎨绘制</button>
+    <!-- 左侧菜单内容 -->
+    <textarea id="text"></textarea>
+  </div>
+  <div class="content">
+    <!-- 右侧网页内容 -->
+    <iframe id="ec_iframe" src="./echart_example.html?1"
+            style="width: 100%;height: 100%;background: white;border: none;"></iframe>
+    <!-- 添加更多内容 -->
+  </div>
+  <button id="toggleSidebar">🔛</button>
+</div>
+<script src="views-script.js"></script>
+</body>
+</html>
