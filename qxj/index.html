@@ -165,6 +165,15 @@
 </script>
 <script>
     window.sources = {};
+    window.resetDetail = function () {
+        ifr = document.getElementsByClassName('ifr')[0];
+        ifr.contentWindow.setTitle("T", {dataName:'t'});
+        ifr.contentWindow.buildP1P3P4({
+            p1: {data:{data:{}}},
+            p3: {DS:{}},
+            p4: [],
+        });
+    }
     function loadMenu() {
         function setMenuEvent() {
             let menus = new Array(...document.getElementsByClassName('_menu_'));
@@ -173,7 +182,8 @@
                     if (password.get()) {
                         menus.forEach(m => m.classList.remove('selected'));
                         this.classList.add('selected');
-                        loadSubMenu(+this.getAttribute('ind'));
+                        loadSubMenu(+this.getAttribute('ind'), this.innerText);
+                        resetDetail();
                     }
                 }
             });
@@ -192,7 +202,7 @@
         });
 
     };
-    function loadSubMenu(ind) {
+    function loadSubMenu(ind, title) {
         function buildMenus(objs) {
             document.getElementsByClassName('sub-menu-content-menus')[0].innerHTML =
                 objs.map((obj, sind) => {
@@ -209,7 +219,8 @@
                         let ind = +this.getAttribute('ind');
                         let sind = +this.getAttribute('sind');
                         let ifr = document.getElementsByClassName('ifr')[0];
-                        ifr.contentWindow.setTitle(window.sources['menu'][ind].title, content[sind]);
+                        // ifr.contentWindow.setTitle(window.sources['menu'][ind].title, content[sind]);
+                        ifr.contentWindow.setTitle(title, content[sind]);
                         if (content[sind].id in window.sources.content) {
                             let contentObj = window.sources.content[content[sind].id];
                             let pwd = password.get();
@@ -238,6 +249,7 @@
     window.onload = function () {
         document.getElementsByClassName('close-sub-menu-content-btn')[0].onclick = function () {
             document.getElementsByClassName('sub-menu-content')[0].classList.remove('open');
+            resetDetail();
         }
         loadJson('en.all.content').then(ret => window.sources.content = ret);
         password = password();
