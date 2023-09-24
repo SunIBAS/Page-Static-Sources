@@ -141,6 +141,26 @@
             background: #3273f6;
             color: white;
         }
+
+        #toAddBoundary {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            width: 100vw;
+            height: 100vh;
+            background: #f0f8ff47;
+            padding: 50px;
+            box-sizing: border-box;
+        }
+        #closeAddBoundaryBtn {
+            display: inline-block;
+            background: #9C27B0;
+            padding: 5px;
+            border-radius: 5px;
+            color: white;
+            position: absolute;
+            right: 60px;
+        }
     </style>
     <script src="../../leaflet/src/leaflet.js"></script>
     <script src="../../leaflet/src/leaflet.markercluster-src.js"></script>
@@ -156,6 +176,11 @@
     <div class="right-content">
 <!--        <div id="map"></div>-->
         <iframe style="width: 100%;height: 100%;" src="./mapIframe.html" frameborder="0"></iframe>
+    </div>
+    <div id="toAddBoundary" style="display: none;">
+        <div id="closeAddBoundaryBtn">关闭</div>
+        <div style="margin-bottom: 5px;font-size: 24px;font-weight: bold;">中国省会</div>
+        <div id="toAddBoundary-province"></div>
     </div>
 </div>
 <script src="../crypto.js"></script>
@@ -195,6 +220,17 @@
             }
         };
     });
+    function generateRandomDarkColor() {
+        // 生成随机的R、G、B值，范围在0到128之间，以确保颜色较深
+        var r = Math.floor(Math.random() * 128);
+        var g = Math.floor(Math.random() * 128);
+        var b = Math.floor(Math.random() * 128);
+
+        // 将R、G、B值组合成颜色字符串
+        var color = "rgb(" + r + "," + g + "," + b + ")";
+
+        return color;
+    }
 </script>
 <script>
     // function initPTB() {
@@ -252,9 +288,9 @@
                 buildCountryPanel(fn) {
                     selectedPanel.style.display = 'block';
                     selectedPanel.innerHTML = window.country.map(obj => {
-                        return `<div class="selected-panel-item" adcode="${obj.adcode}">${obj.name}</div>`
+                        return `<div class="selected-panel-item bsp-item" adcode="${obj.adcode}">${obj.name}</div>`
                     }).join('') + '<div class="selected-panel-item-min-max">最小化</div>';
-                    let menus = new Array(...selectedPanel.getElementsByClassName('selected-panel-item'));
+                    let menus = new Array(...selectedPanel.getElementsByClassName('bsp-item'));
                     menus.forEach(m => {
                         m.onclick = function () {
                             if (m.classList.contains('selected')) {
@@ -318,6 +354,45 @@
                 onChange(this.checked);
             }
         }
+        function buildBoundaryPanel(map, china) {
+            let layers = {};
+            var panel = L.control({position: 'topleft'});
+            panel.onAdd = function(map) {
+                var div = L.DomUtil.create('div', 'info cluster-panel');
+                div.innerHTML = `<span id="toAddBoundaryBtn">添加边界</span>`;
+                return div;
+            }
+            panel.addTo(map);
+            document.getElementById('closeAddBoundaryBtn').onclick = function () {
+                document.getElementById('toAddBoundary').style.display = 'none';
+            }
+            mapWindow.document.getElementById('toAddBoundaryBtn').onclick = function () {
+                document.getElementById('toAddBoundary').style.display = 'block';
+            }
+            let chinaPanel = document.getElementById('toAddBoundary-province');
+            chinaPanel.innerHTML = china.features.map((_, ind) => {
+                return `<div class="selected-panel-item toAddBoundary-item" adcode="${_.properties.adcode}" ind="${ind}">${_.properties.name}</div>`;
+            }).join('');
+            let items = new Array(...chinaPanel.getElementsByClassName('toAddBoundary-item'));
+            items.forEach(item => {
+                item.onclick = function () {
+                    this.classList.toggle('selected');
+                    let adcode = this.getAttribute('adcode');
+                    let ind = +this.getAttribute('ind');
+                    if (this.classList.contains('selected')) {
+                        layers[adcode] = mapWindow.L.geoJSON(china.features[ind],{
+                            fillOpacity: 0,
+                            color: generateRandomDarkColor()
+                        }).addTo(map);
+                    } else {
+                        layers[adcode].remove();
+                    }
+                }
+            })
+            console.log(china);
+            mapWindow.document.getElementById('toAddBoundaryBtn').onchange = function () {
+            }
+        }
         window.mapUtils = new (class {
             constructor() {
                 if (mapInstance) {
@@ -338,20 +413,21 @@
                 this.selectIcon = null;
                 this.cluster = true;
                 this.currentGeoJSON = null;
-                this.currentBoundary = null;
                 buildClusterPanel(this.map, v => {
                     console.log('cluster:' + v);
                     this.cluster = v;
-                    this.showGeoLayer(this.currentGeoJSON, this.currentBoundary);
+                    this.showGeoLayer(this.currentGeoJSON);
                 });
-                this.boundaryLayer = null;
                 this.geoJsons = {
                     china: null
                 }
                 this.loadChina();
             }
             loadChina() {
-                fetch('./china.geojson').then(ret => ret.json()).then(china => this.geoJsons.china = china);
+                fetch('./china.geojson').then(ret => ret.json()).then(china => {
+                    this.geoJsons.china = china;
+                    buildBoundaryPanel(this.map, china);
+                });
             }
             setStation(stations) {
                 this.stations = stations;
@@ -376,18 +452,18 @@
                     if (this.stations[ind].select === 'country') {
                         this.showGeoLayer(null)
                         this.panelApi.buildCountryPanel(adcode => {
-                            let boundary = null;
-                            if (this.geoJsons.china) {
-                                this.geoJsons.china.features.forEach(fe => {
-                                    if (fe.properties.adcode === +adcode) {
-                                        boundary = fe;
-                                    }
-                                });
-                            }
+                            // let boundary = null;
+                            // if (this.geoJsons.china) {
+                            //     this.geoJsons.china.features.forEach(fe => {
+                            //         if (fe.properties.adcode === +adcode) {
+                            //             boundary = fe;
+                            //         }
+                            //     });
+                            // }
                             this.showGeoLayer({
                                 "type":"FeatureCollection",
                                 features: this.tmpGeoJSON[adcode]
-                            }, boundary);
+                            });
                         });
                     } else {
                         this.panelApi.hidePanel();
@@ -395,7 +471,7 @@
                     }
                 });
             }
-            showGeoLayer(geojson, boundary) {
+            showGeoLayer(geojson) {
                 if (this.geoLayer) {
                     this.map.removeLayer(this.geoLayer);
                     this.geoLayer = null;
@@ -459,19 +535,8 @@
                     }
                     this.map.fitBounds(this.geoLayer.getBounds());
                 }
-                if (this.boundaryLayer) {
-                    this.map.removeLayer(this.boundaryLayer);
-                    this.boundaryLayer = null;
-                }
-                if (boundary) {
-                    this.currentBoundary = boundary;
-                    this.boundaryLayer = mapWindow.L.geoJSON(boundary,{
-                        fillOpacity: 0
-                    }).addTo(this.map);
-                    this.map.fitBounds(this.boundaryLayer.getBounds());
-                }
             }
-        })
+        });
     }
     function toInit(mapInstance) {
         // initPTB();
