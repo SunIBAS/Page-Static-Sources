@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <link rel="stylesheet" href="./../../leaflet/src/leaflet.css">
+  <link rel="stylesheet" href="./../../leaflet/src/leaflet-custrom.css">
+  <script src="./../../leaflet/src/leaflet.js"></script>
+<!--  <script src="./js/basemap.js"></script>-->
+  <script src="./../../leaflet/utils/BottomInfo.js"></script>
+  <script src="../../leaflet/src/leaflet.markercluster-src.js"></script>
+  <link rel="stylesheet" href="../../leaflet/src/MarkerCluster.Default.css"/>
+  <style>
+    body {
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+        border: none;
+    }
+    #top-panel {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+    }
+    #map {
+        width: 100%;
+        height: 100vh;
+    }
+    #left-bar {
+        height: 100vh;
+        width: 50px;
+        background: #445463;
+        padding: 20px 0;
+        box-sizing: border-box;
+    }
+    #left-bar .function {
+        width: 40px;
+        height: 40px;
+        background: white;
+        border-radius: 20px;
+        margin: 5px 5px 20px;
+        padding: 5px;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+    #left-bar .function svg {
+        width: 100%;
+        height: 100%;
+    }
+  </style>
+  <style>
+
+    .selected-panel {
+      width: 50vw;
+      background: #cdff9385;
+      padding: 5px;
+      border-radius: 5px;
+      margin-bottom: 30px !important;
+    }
+    .selected-panel-item.selected {
+      background: white;
+      color: black;
+    }
+    .selected-panel-item {
+      display: inline-block;
+      background: #673AB7;
+      margin: 4px;
+      padding: 2px;
+      border-radius: 3px;
+      color: white;
+      cursor: pointer;
+    }
+    .selected-panel-item-min-max {
+      display: inline-block;
+      background: #FF5722;
+      margin: 4px;
+      padding: 2px;
+      border-radius: 3px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .info-table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .info-table, .info-table td {
+      border: 1px solid black;
+    }
+
+    .info-table th, .info-table td {
+      padding: 5px;
+      text-align: left;
+    }
+
+    /* 设置单数行的背景颜色 */
+    .info-table tr:nth-child(odd) {
+      background-color: #f2f2f2;
+    }
+
+    /* 设置双数行的背景颜色 */
+    .info-table tr:nth-child(even) {
+      background-color: #dddddd;
+    }
+    .cluster-panel {
+      display: flex;
+      padding: 3px;
+      margin-left: 5px;
+      border-radius: 4px;
+      background: #3273f6;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<div id="top-panel">
+  <div id="map"></div>
+</div>
+<script>
+    window.onload = function () {
+        window.map = L.map("map",{
+            zoomControl: false
+        }).setView([43.83593960164886, 89.83942252842337], 10);
+        let bi = new BottomInfo(window.map); //.setBaseMap(window.all.Stadia.variants.AlidadeSmooth.url,window.all.Stadia.options);
+        setTimeout(() => {
+            // setInterval(() => {
+            //     document.getElementsByClassName('leaflet-control-scale')[0].style.display = 'none';
+            // },500);
+            document.getElementsByClassName('leaflet-control-scale')[0].style.display = 'none';
+        },2000);
+        if (window.parent !== window) {
+          window.parent.mapLoaded(window, window.map);
+        }
+    }
+
+  // let opt = {
+  //   type: 'wms',
+  //   url: `http://localhost:8081/geoserver/manager_product/wms`,
+  //   params: {
+  //     "format": "image/png",
+  //     "VERSION": "1.1.1",
+  //     "transparent": true,
+  //     "layers": "manager_product:a_2014_4_color_infraed",
+  //   }
+  // };
+  //
+  // L.tileLayer.wms(opt.url,opt.params).addTo(map);
+</script>
+</body>
+</html>

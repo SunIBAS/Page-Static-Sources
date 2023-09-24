@@ -1,0 +1,51 @@
+.leaflet-touch .leaflet-bar a {
+    width: 35px;
+    height: 35px;
+    line-height: 35px;
+}
+.leaflet-bar a:hover {
+    background-color: rgba(0, 0, 0, 0.76);
+    color: white;
+}
+.leaflet-bar a, .leaflet-bar a {
+    background-color: rgba(0, 0, 0, 0.42);
+    border-bottom: 1px solid #ccc;
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    color: white;
+}
+.leaflet-control-attribution {
+    display: none;
+}
+.my-control {
+    cursor: pointer;
+    width: 35px;
+    height: 35px;
+    background: rgba(0,0,0,0.44);
+    color: white;
+    line-height: 35px;
+    border: 2px solid rgba(0,0,0,0.2);
+    background-clip: padding-box;
+    box-sizing: border-box;
+    text-align: center;
+    padding-top: 3px;
+    border-radius: 4px;
+}
+.my-control svg {
+    width: 25px;
+    height: 25px;
+}
+.my-control path {
+    fill: white;
+}
+.map-selector-line {
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    line-height: 18px;
+}
+.map-selector-line:hover {
+    color: #5381f3;
+}

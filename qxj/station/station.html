@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            border: none;
+            overflow: hidden;
+        }
+        .main {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+        .left-panel {
+            width: 0px;
+            height: 100%;
+            transition: width 0.3s; /* 添加过渡效果 */
+        }
+        .left-panel.open {
+            width: 300px;
+        }
+        .left-panel.open .left-panel-content{
+            left: 0px;
+        }
+        .left-panel .left-panel-content{
+            transition: left 0.3s;
+            width: 100%;
+            height: 100%;
+            background: #2196f3;
+            position: relative;
+            /*padding-top: 50px;*/
+            box-sizing: border-box;
+        }
+        .right-content {
+            flex: 1;
+            background: white;
+            height: 100%;
+        }
+        .fab {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 280px;
+            height: 30px;
+            background: #FF9800;
+            z-index: 100;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .menu {
+            padding: 5px;
+            margin: 8px;
+            background: #00bcd4;
+            box-sizing: border-box;
+            display: inline-block;
+            width: 282px;
+            border-radius: 4px;
+            box-shadow: 1px 1px 1px 1px #4a7e8a;
+            cursor: pointer;
+        }
+        .menu.selected {
+            background: cornsilk;
+        }
+        .menu-title {
+            color: #673AB7;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .menu-subtitle {
+            font-size: 14px;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .selected-panel {
+            width: 50vw;
+            background: #cdff9385;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .selected-panel-item.selected {
+            background: white;
+            color: black;
+        }
+        .selected-panel-item {
+            display: inline-block;
+            background: #673AB7;
+            margin: 4px;
+            padding: 2px;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+        }
+        .selected-panel-item-min-max {
+            display: inline-block;
+            background: #FF5722;
+            margin: 4px;
+            padding: 2px;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .info-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .info-table, .info-table td {
+            border: 1px solid black;
+        }
+
+        .info-table th, .info-table td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        /* 设置单数行的背景颜色 */
+        .info-table tr:nth-child(odd) {
+            background-color: #f2f2f2;
+        }
+
+        /* 设置双数行的背景颜色 */
+        .info-table tr:nth-child(even) {
+            background-color: #dddddd;
+        }
+        .cluster-panel {
+            display: flex;
+            padding: 3px;
+            margin-left: 5px;
+            border-radius: 4px;
+            background: #3273f6;
+            color: white;
+        }
+    </style>
+    <script src="../../leaflet/src/leaflet.js"></script>
+    <script src="../../leaflet/src/leaflet.markercluster-src.js"></script>
+    <link rel="stylesheet" href="../../leaflet/src/leaflet.css"/>
+    <link rel="stylesheet" href="../../leaflet/src/MarkerCluster.Default.css"/>
+</head>
+<body>
+<div class="main">
+<!--    <div class="fab" id="panel-toggle-btn">打开/关闭</div>-->
+    <div class="left-panel open">
+        <div class="left-panel-content"></div>
+    </div>
+    <div class="right-content">
+<!--        <div id="map"></div>-->
+        <iframe style="width: 100%;height: 100%;" src="./mapIframe.html" frameborder="0"></iframe>
+    </div>
+</div>
+<script src="../crypto.js"></script>
+<script>
+    const crypt = {
+        encrypt(text, key) {
+            // 使用AES加密算法加密文本
+            return CryptoJS.AES.encrypt(text, key).toString();
+        },
+        decrypt(text, key) {
+            // 使用AES解密算法解密文本
+            const decryptedBytes = CryptoJS.AES.decrypt(text, key);
+            return decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+        }
+    };
+    let password = (function () {
+        let inp = document.getElementById('password');
+        let changeEvent = [];
+        inp.onchange = function () {
+            changeEvent.forEach(ev => ev());
+        };
+        return {
+            get() {
+                let pwd = inp.value;
+                if (pwd) {
+                    return pwd;
+                } else {
+                    alert('请输入密码');
+                    return null;
+                }
+            },
+            set(v) {
+                inp.value = v;
+            },
+            addChange(ev) {
+                changeEvent.push(ev);
+            }
+        };
+    });
+</script>
+<script>
+    // function initPTB() {
+    //     let panel = document.getElementsByClassName('left-panel')[0];
+    //     document.getElementById('panel-toggle-btn').onclick = function () {
+    //         if (panel.classList.contains('open')) {
+    //             panel.classList.remove('open');
+    //         } else {
+    //             panel.classList.add('open')
+    //         }
+    //     }
+    // }
+    function buildMenu(stations) {
+        document.getElementsByClassName('left-panel-content')[0].innerHTML = stations.map((sta, ind) => {
+            return `<div class="menu" ind="${ind}">
+<div class="menu-title">${sta.title}</div>
+<div class="menu-subtitle">${sta.subtitle}</div>
+</div>`;
+        }).join('');
+        window.mapUtils.setStation(stations);
+        let menus = new Array(...document.getElementsByClassName('left-panel-content')[0].getElementsByClassName('menu'))
+        menus.forEach(menu => {
+            menu.onclick = function () {
+                if (this.classList.contains('selected')) {
+                    return;
+                } else {
+                    menus.forEach(m => m.classList.remove('selected'));
+                    this.classList.add('selected');
+                    let ind = +this.getAttribute('ind');
+                    // let geojson = stations[ind].geojson;
+                    window.mapUtils.setGeoJSON(ind);
+                }
+            }
+        })
+    }
+    function initMap(mapInstance) {
+        function buildSelectPanel(map) {
+            window.country = [{"adcode":110000,"name":"北京市"},{"adcode":120000,"name":"天津市"},{"adcode":130000,"name":"河北省"},{"adcode":140000,"name":"山西省"},{"adcode":150000,"name":"内蒙古自治区"},{"adcode":210000,"name":"辽宁省"},{"adcode":220000,"name":"吉林省"},{"adcode":230000,"name":"黑龙江省"},{"adcode":310000,"name":"上海市"},{"adcode":320000,"name":"江苏省"},{"adcode":330000,"name":"浙江省"},{"adcode":340000,"name":"安徽省"},{"adcode":350000,"name":"福建省"},{"adcode":360000,"name":"江西省"},{"adcode":370000,"name":"山东省"},{"adcode":410000,"name":"河南省"},{"adcode":420000,"name":"湖北省"},{"adcode":430000,"name":"湖南省"},{"adcode":440000,"name":"广东省"},{"adcode":450000,"name":"广西壮族自治区"},{"adcode":460000,"name":"海南省"},{"adcode":500000,"name":"重庆市"},{"adcode":510000,"name":"四川省"},{"adcode":520000,"name":"贵州省"},{"adcode":530000,"name":"云南省"},{"adcode":540000,"name":"西藏自治区"},{"adcode":610000,"name":"陕西省"},{"adcode":620000,"name":"甘肃省"},{"adcode":630000,"name":"青海省"},{"adcode":640000,"name":"宁夏回族自治区"},{"adcode":650000,"name":"新疆维吾尔自治区"},{"adcode":710000,"name":"台湾省"},{"adcode":810000,"name":"香港特别行政区"},{"adcode":820000,"name":"澳门特别行政区"}];
+            var panel = L.control({position: 'bottomright'});
+            panel.onAdd = function(map) {
+                var div = L.DomUtil.create('div', 'info selected-panel');
+                return div;
+            }
+            panel.addTo(map);
+            let selectedPanel = mapWindow.document.getElementsByClassName('selected-panel')[0];
+            let min = false;
+            // window.legend = legend;
+            return {
+                getPanel() {
+                    return panel;
+                },
+                hidePanel() {
+                    selectedPanel.style.display = 'none';
+                },
+                buildCountryPanel(fn) {
+                    selectedPanel.style.display = 'block';
+                    selectedPanel.innerHTML = window.country.map(obj => {
+                        return `<div class="selected-panel-item" adcode="${obj.adcode}">${obj.name}</div>`
+                    }).join('') + '<div class="selected-panel-item-min-max">最小化</div>';
+                    let menus = new Array(...selectedPanel.getElementsByClassName('selected-panel-item'));
+                    menus.forEach(m => {
+                        m.onclick = function () {
+                            if (m.classList.contains('selected')) {
+                                return ;
+                            } else {
+                                menus.forEach(m => m.classList.remove('selected'));
+                                this.classList.add('selected');
+                                fn(this.getAttribute('adcode'));
+                            }
+                        }
+                    });
+                    mapWindow.document.getElementsByClassName('selected-panel-item-min-max')[0].onclick = function () {
+                        if (min) {
+                            this.innerText = '最小化';
+                            selectedPanel.style.width = '50vw';
+                            menus.forEach(m => {
+                                m.style.display = 'inline-block';
+                            });
+                        } else {
+                            this.innerText = '还原';
+                            selectedPanel.style.width = 'auto';
+                            menus.forEach(m => {
+                                if (!m.classList.contains('selected')) {
+                                    m.style.display = 'none';
+                                }
+                            });
+                        }
+                        min = !min;
+                    };
+                }
+            }
+        }
+        function buildInfoPanel(map) {
+            var panel = L.control({position: 'topright'});
+            panel.onAdd = function(map) {
+                var div = L.DomUtil.create('div', 'info info-panel');
+                return div;
+            }
+            panel.addTo(map);
+            let infoPanel = mapWindow.document.getElementsByClassName('info-panel')[0];
+            return {
+                showInfo(obj) {
+                    infoPanel.innerHTML = "";
+                    let infos = [];
+                    for (let i in obj) {
+                        infos.push(`<tr><td>${i}</td><td>${obj[i]}</td></tr>`);
+                    }
+                    infoPanel.innerHTML = `<table class="info-table"><tbody>${infos.join('')}</tbody></table>`;
+                }
+            }
+        }
+        function buildClusterPanel(map, onChange) {
+            var panel = L.control({position: 'topleft'});
+            panel.onAdd = function(map) {
+                var div = L.DomUtil.create('div', 'info cluster-panel');
+                div.innerHTML = `<input id="clusterPanel" type="checkbox" checked/> 聚合`;
+                return div;
+            }
+            panel.addTo(map);
+            mapWindow.document.getElementById('clusterPanel').onchange = function () {
+                onChange(this.checked);
+            }
+        }
+        window.mapUtils = new (class {
+            constructor() {
+                if (mapInstance) {
+                    this.map = mapInstance;
+                    this.map.setView([40.54720023441049, 86.04492187500001], 5);
+                } else {
+                    this.map = L.map('map',{
+                        // dragging: false // 禁用拖动
+                    }).setView([40.54720023441049, 86.04492187500001], 5);
+                    this.addMap();
+                }
+                this.stations = null;
+                this.tmpGeoJSON = null;
+                this.geoLayer = null;
+                this.panelApi = buildSelectPanel(this.map);
+                this.infoApi = buildInfoPanel(this.map);
+                this.panelApi.hidePanel();
+                this.selectIcon = null;
+                this.cluster = true;
+                this.currentGeoJSON = null;
+                this.currentBoundary = null;
+                buildClusterPanel(this.map, v => {
+                    console.log('cluster:' + v);
+                    this.cluster = v;
+                    this.showGeoLayer(this.currentGeoJSON, this.currentBoundary);
+                });
+                this.boundaryLayer = null;
+                this.geoJsons = {
+                    china: null
+                }
+                this.loadChina();
+            }
+            loadChina() {
+                fetch('./china.geojson').then(ret => ret.json()).then(china => this.geoJsons.china = china);
+            }
+            setStation(stations) {
+                this.stations = stations;
+            }
+            addMap() {
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }).addTo(this.map);
+            }
+            setGeoJSON(ind) {
+                fetch(`./../geojson/${this.stations[ind].geojson}.json`).then(_=>_.json()).then(ret => {
+                    if (typeof ret === 'string') {
+                        ret = JSON.parse(crypt.decrypt(ret, window.pwd));
+                    } else {
+                        for (let i in ret) {
+                            ret[i] = JSON.parse(crypt.decrypt(ret[i], window.pwd));
+                        }
+                    }
+                    this.tmpGeoJSON = ret;
+                    this.infoApi.showInfo({"信息":"无"});
+                    if (this.stations[ind].select === 'country') {
+                        this.showGeoLayer(null)
+                        this.panelApi.buildCountryPanel(adcode => {
+                            let boundary = null;
+                            if (this.geoJsons.china) {
+                                this.geoJsons.china.features.forEach(fe => {
+                                    if (fe.properties.adcode === +adcode) {
+                                        boundary = fe;
+                                    }
+                                });
+                            }
+                            this.showGeoLayer({
+                                "type":"FeatureCollection",
+                                features: this.tmpGeoJSON[adcode]
+                            }, boundary);
+                        });
+                    } else {
+                        this.panelApi.hidePanel();
+                        this.showGeoLayer(ret);
+                    }
+                });
+            }
+            showGeoLayer(geojson, boundary) {
+                if (this.geoLayer) {
+                    this.map.removeLayer(this.geoLayer);
+                    this.geoLayer = null;
+                    this.selectIcon = null;
+                }
+                if (geojson) {
+                    this.currentGeoJSON = geojson;
+                    let $this = this;
+                    if (this.cluster) {
+                        this.geoLayer = mapWindow.L.markerClusterGroup();
+                        console.log(geojson);
+                        geojson.features.forEach(fe => {
+                            var marker = mapWindow.L.marker(new mapWindow.L.LatLng(fe.geometry.coordinates[1],fe.geometry.coordinates[0]), {
+                                properties: fe.properties,
+                                icon: mapWindow.L.icon({
+                                    iconUrl: './../icon/station.svg',
+                                    iconSize: [20, 20],
+                                })
+                            })
+                                .on({
+                                    click(e) {
+                                        // console.log(e.target.feature.properties)
+                                        if ($this.selectIcon) {
+                                            $this.selectIcon._icon.src = './../icon/station.svg';
+                                        }
+                                        $this.infoApi.showInfo(e.target.options.properties);
+                                        e.target._icon.src = './../icon/select-station.svg';
+                                        $this.selectIcon = e.target;
+                                    }
+                                });
+                            this.geoLayer.addLayer(marker);
+                        });
+                        this.map.addLayer(this.geoLayer);
+                    } else {
+                        this.geoLayer = mapWindow.L.geoJSON(geojson, {
+                            pointToLayer: function (feature, latlng) {
+                                return mapWindow.L.marker(latlng, {
+                                    icon: mapWindow.L.icon({
+                                        iconUrl: './../icon/station.svg',
+                                        iconSize: [20, 20],
+                                    })
+                                });
+                            },
+                            style: function (feature) {
+                                return {color: feature.properties.color};
+                            },
+                            onEachFeature: (feature, layer) => {
+                                layer.on({
+                                    click(e) {
+                                        // console.log(e.target.feature.properties)
+                                        if ($this.selectIcon) {
+                                            $this.selectIcon._icon.src = './../icon/station.svg';
+                                        }
+                                        $this.infoApi.showInfo(e.target.feature.properties);
+                                        e.target._icon.src = './../icon/select-station.svg';
+                                        $this.selectIcon = e.target;
+                                    }
+                                })
+                            }
+                        }).addTo(this.map);
+                    }
+                    this.map.fitBounds(this.geoLayer.getBounds());
+                }
+                if (this.boundaryLayer) {
+                    this.map.removeLayer(this.boundaryLayer);
+                    this.boundaryLayer = null;
+                }
+                if (boundary) {
+                    this.currentBoundary = boundary;
+                    this.boundaryLayer = mapWindow.L.geoJSON(boundary,{
+                        fillOpacity: 0
+                    }).addTo(this.map);
+                    this.map.fitBounds(this.boundaryLayer.getBounds());
+                }
+            }
+        })
+    }
+    function toInit(mapInstance) {
+        // initPTB();
+        fetch('./stationInfo.min.json').then(_=>_.json()).then(ret => {
+            initMap(mapInstance);
+            buildMenu(ret);
+        })
+    };
+    window.mapWindow = window;
+    function mapLoaded($window, mapInstance) {
+        window.MapLoaded = true;
+        window.mapWindow = $window;
+        window.mapInstance = mapInstance;
+    }
+    window.onload = function () {
+        // window.MapLoaded = false;
+        window.pwd = prompt("输入密码", "password");
+        window.test = 'U2FsdGVkX19du8OFUnDJB4kUgcEaimEOtcJTNx2k+WjPTSNGrphN3nv/kWyue3bkwTxbSpwhLb4WZVm6jujEjWjAYSgwUO4qAx54Ii/7Pss=';
+        try {
+            JSON.parse(crypt.decrypt(window.test, window.pwd));
+            let id = setInterval(() => {
+                if (window.MapLoaded) {
+                    toInit(window.mapInstance);
+                    clearInterval(id);
+                }
+            }, 1000);
+        } catch (e) {
+            alert("密码错误，重新输入");
+            window.location.reload();
+        }
+    }
+</script>
+</body>
+</html>

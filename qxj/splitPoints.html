@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="./../leaflet/src/turf.min.js"></script>
+</head>
+<body>
+
+<script>
+    window.onload = function () {
+        fetch('./china.geojson').then(_=>_.json()).then(ret => {
+            window.china = ret;
+            fetch('./stationInfo.min.json').then(_=>_.json()).then(ret => {
+                window.ret = ret;
+            })
+        })
+    };
+</script>
+</body>
+</html>
