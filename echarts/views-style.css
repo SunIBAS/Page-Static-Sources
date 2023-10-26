@@ -37,6 +37,27 @@ body {
     font-size: 14px;
     cursor: pointer;
 }
+.addJsonDiv {
+    position: absolute;
+    right: 85px;
+    top: 10px;
+    border: none;
+    border-radius: 3px;
+    font-size: 14px;
+    width: calc(50vw - 140px);
+    height: 37px;
+    line-height: 37px;
+}
+#addJsonBtn {
+    height: 37px;
+    outline: none;
+    background: #FF9800;
+    border: none;
+    border-radius: 3px;
+    width: 110px;
+    font-size: 14px;
+    cursor: pointer;
+}
 .sidebar textarea {
     margin: 50px 10px 10px;
     height: calc(100% - 60px);

@@ -1,4 +1,4 @@
-name: Build Vue Project
+name: Public and Deployment
 
 on:
   push:
