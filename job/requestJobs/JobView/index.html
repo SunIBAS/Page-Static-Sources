@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <div>
+        <div>
+            <div>
+                <div>标题</div>
+                <div>
+                    <div><input type="checkbox" name=""> 选项</div>
+                </div>
+            </div>
+        </div>
+        <table></table>
+    </div>
+</body>
+<script>
+    window.bt = null;
+    function load() {
+        return fetch('./job.json').then(_=>_.json()).then(jobs => {
+//         0	579
+//         1	高中语文教师
+//         2	若干
+//         3	6,7,11,17
+//         4	肇庆市加美学校
+//         5	2022-08-01
+//         6	2023-12-04 09:02:51
+//         7
+//         8	http://img.gaoxiaojob.com/uploads/company_logo/20220118142029_90564.jpg
+//         9	13-28万/年
+//         10	广东省肇庆市加美学校2023年招聘教师
+//         11
+//         12	本科
+//         13	中小学普通教师岗
+//         14	["五险一金","带薪年假"]
+//         15	广东-肇庆
+//         16	肇庆
+//         17	中小学
+//         18	民营（私营）
+//         19	教育学,中国语言文学
+//         20
+//         21	12-04
+//         22	12-04
+//         23	/job/detail/579.html
+//         24	/company/detail/33.html
+//         25	/announcement/detail/47.html
+            // 19 专业
+            // 15 地点
+            // 1 工作
+            // 23 连接
+            // 21 时间
+            let zys = [];
+            let areas = [];
+            jobs.forEach(job => {
+                job[19].split(',').forEach(zy => {
+                    if (!zys.includes(zy)) {
+                        zys.push(zy);
+                    }
+                });
+                if (!areas.includes(job[15])) {
+                    areas.push(job[15]);
+                }
+            });
+            // console.log(jobs);
+            return {
+                zys,
+                areas,
+                jobs,
+            }
+        })
+            .then(({zys, areas, jobs}) => {
+                // 19 专业
+                // 15 地点
+                // 1 工作
+                // 23 连接
+                // 21 时间
+                window.bt = new BuildTable(jobs, [
+                    {
+                        options: zys,
+                        column: 19,
+                        title: '专业',
+                    },
+                    {
+                        options: areas,
+                        column: 19,
+                        title: '地点',
+                    }
+                ]);
+                window.bt.buildCondition();
+        });
+    }
+    function getSelectedOptions() {
+        var selectElement = document.getElementById("options");
+        var selectedOptions = [];
+
+        for (var i = 0; i < selectElement.options.length; i++) {
+            if (selectElement.options[i].selected) {
+                selectedOptions.push(selectElement.options[i].value);
+            }
+        }
+        return selectedOptions;
+    }
+    class BuildTable {
+        constructor(list, condition) {
+            this.list = list;
+            this.condition = condition;
+            this.optionsDom = null;
+            this.tableDom = null;
+            this.initDom();
+        }
+
+        initDom() {
+            document.body.innerHTML = `<div><div class="options"></div><div class="table"></div></div>`;
+            this.optionsDom = document.getElementsByClassName("options")[0];
+            this.tableDom = document.getElementsByClassName("table")[0];
+        }
+
+        buildCondition() {
+            let ids = [];
+            this.optionsDom.innerHTML = this.condition.map((opt, ind) => {
+                ids.push(`option_${ind}`);
+                return ` <label for="options">${opt.title}：</label>
+            <select id="option_${ind}" multiple>
+                ${opt.options.map(opts => `<option value="opts">${opts}</option>`).join('\n')}
+            </select>`;
+            }).join('\n');
+        }
+        buildTable() {}
+    }
+
+    // load();
+</script>
+</html>
