@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>详情页</title>
+    <style>
+        /* 基本样式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            color: #333;
+        }
+
+        /* 标题样式 */
+        .title {
+            text-align: center;
+            background-color: #3498db;
+            color: #fff;
+            padding: 20px 0;
+        }
+
+        /* 表格样式 */
+        .table-container {
+            margin: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #3498db;
+            color: #fff;
+        }
+        .p1 th {
+            width: 112px;
+        }
+
+        /* 属性表样式 */
+        .property-table {
+            margin: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .property-title {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px;
+            font-weight: bold;
+        }
+
+        .property-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .property-table table, .property-table th, .property-table td {
+            border: 1px solid #ccc;
+        }
+
+        .property-table th, .property-table td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .line-title {
+            margin: 20px 20px 0 20px;
+            background: #9C27B0;
+            line-height: 30px;
+            padding-left: 10px;
+            border-left: 4px solid #4CAF50;
+            color: white;
+            border-radius: 5px 0 5px 0;
+        }
+        .p4 tr:hover {
+            background: #2196F3;
+            color: white;
+        }
+
+
+        /* 选择面板容器 */
+        .select-panel {
+            display: inline-block;
+            position: relative;
+            margin: 10px 20px 0px;
+        }
+
+        /* 隐藏复选框 */
+        input[type="radio"] {
+            display: none;
+        }
+
+        /* 自定义复选框样式 */
+        .custom-checkbox {
+            display: inline-block;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        /* 复选框选中时的样式 */
+        input[type="radio"]:checked + .custom-checkbox {
+            background-color: #3498db;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<!-- 第一部分：标题 -->
+<div class="title">
+    <h1>主标题</h1>
+    <h2>子标题</h2>
+</div>
+
+<div class="line-title">数据描述</div>
+<!-- 第二部分：表格信息 -->
+<div class="table-container">
+    <table class="p1">
+    </table>
+</div>
+<div class="line-title">服务描述</div>
+<div class="select-panel" style="display: none;">
+    <label>
+        <input type="radio" name="s">
+        <span class="custom-checkbox">选项 1</span>
+    </label>
+
+    <label>
+        <input type="radio" name="s">
+        <span class="custom-checkbox">选项 2</span>
+    </label>
+
+    <label>
+        <input type="radio" name="s">
+        <span class="custom-checkbox">选项 3</span>
+    </label>
+
+    <!-- 添加更多选项根据需要 -->
+</div>
+<!-- 第三部分：表格信息 -->
+<div class="table-container">
+    <table class="p3">
+    </table>
+</div>
+<div class="line-title">字段描述</div>
+<!-- 第四部分：表格信息 -->
+<div class="table-container">
+    <table class="p4">
+    </table>
+
+</div>
+</body>
+<script>
+    window.onload = function() {
+        // setTitle();
+        // buildP1P3P4();
+    };
+    window.setTitle = function(title, detailObj) {
+        scrollTo(0,0);
+        document.getElementsByClassName('title')[0].innerHTML = `<h1>${title}</h1><h2>${detailObj.dataName||detailObj.name}</h2>`
+    };
+    function buildP1(ret) {
+        const P1Setting = [
+            {
+                title: '数据摘要',
+                content: 'cidabs'
+            },
+            {
+                title: '数据来源',
+                content: 'csource'
+            },
+            [
+                {
+                    title: '关键词',
+                    content: 'ckeywords'
+                },
+                {
+                    title: '更新频率',
+                    content: 'cmainfreq'
+                }
+            ],
+            [
+                {
+                    title: '存储编码',
+                    content: 'dataId'
+                },
+                {
+                    title: 'dataId',
+                    content: 'dataClassId'
+                },
+            ],
+            {
+                title: '数据集说明文档',
+                content: 'cfilename'
+            },
+            {
+                title: '_line_',
+                content: '地理覆盖范围'
+            },
+            {
+                title: '描述',
+                content: 'cgeodesc'
+            },
+            [
+                {
+                    title: '最北纬度',
+                    content: 'cnorthbl'
+                },
+                {
+                    title: '最西经度',
+                    content: 'cwestbl'
+                }
+            ],
+            [
+                {
+                    title: '最南纬度',
+                    content: 'csouthbl'
+                },
+                {
+                    title: '最东经度',
+                    content: 'ceastbl'
+                },
+            ],
+            {
+                title: '_line_',
+                content: '地理覆盖范围'
+            },
+            [
+                {
+                    title: '数据制作者',
+                    content: 'crpindname'
+                },
+                {
+                    title: '数据维护者',
+                    content: 'crpindname1'
+                }
+            ],
+            [
+                {
+                    title: '数据管理者',
+                    content: 'crporgname'
+                },
+                {
+                    title: '元数据编制者',
+                    content: 'ccreatName'
+                },
+            ],
+            {
+                title: '联系方式',
+                content: 'lxfs'
+            },
+        ];
+        let obj = ret.data.data;
+        obj.lxfs = `电话：${obj.ccntphone}；Email：${obj.cemailadd}；详细地址：${obj.cdelpoint}`
+        document.getElementsByClassName('p1')[0].innerHTML =
+            P1Setting.map(ps => {
+                if (ps instanceof Array) {
+                    return ` <tr>
+                <th>${ps[0].title}</th>
+                <td>${obj[ps[0].content]}</td>
+                <th>${ps[1].title}</th>
+                <td>${obj[ps[1].content]}</td>
+            </tr>`
+                } else {
+                    if (ps.title === '_line_') {
+                        return ` <tr>
+                <td colspan="4">${ps.content}</td>
+            </tr>`
+                    } else {
+                        return ` <tr>
+                <th>${ps.title}</th>
+                <td colspan="3">${obj[ps.content]}</td>
+            </tr>`
+                    }
+                }
+            }).join('\r\n');
+    };
+    function buildP3(ret, index) {
+        let obj = ret.DS[index];
+        const P3Setting = [
+            {
+                title: '数据名称',
+                content: 'dataName'
+            },
+            [
+                {
+                    title: '时间尺度',
+                    content: 'timeScaleUnit'
+                },
+                {
+                    title: '数据代码',
+                    content: 'dataCode'
+                },
+            ],
+            [
+                {
+                    title: '更新时间',
+                    content: 'updateTime'
+                },
+                {
+                    title: '发布时间',
+                    content: 'publishTime'
+                }
+            ],
+        ];
+        document.getElementsByClassName('p3')[0].innerHTML =
+            P3Setting.map(ps => {
+                if (ps instanceof Array) {
+                    return ` <tr>
+                <th>${ps[0].title}</th>
+                <td>${obj[ps[0].content]}</td>
+                <th>${ps[1].title}</th>
+                <td>${obj[ps[1].content]}</td>
+            </tr>`
+                } else {
+                    if (ps.title === '_line_') {
+                        return ` <tr>
+                <td colspan="4">${ps.content}</td>
+            </tr>`
+                    } else {
+                        return ` <tr>
+                <th>${ps.title}</th>
+                <td colspan="3">${obj[ps.content]}</td>
+            </tr>`
+                    }
+                }
+            }).join('\r\n');
+    };
+    function buildP4(ret, index) {
+        let tableContent = ret[index].DS;
+        document.getElementsByClassName('p4')[0].innerHTML = `<tr>
+            <th>序号</th>
+            <th>要素代码</th>
+            <th>中文</th>
+            <th>单位</th>
+            <!-- 可根据需要添加更多表头列 -->
+        </tr>
+        ` + tableContent.map((tc, ind) => {
+                return `<tr>
+                <td>${ind + 1}</td>
+                <td>${tc.userEleCode}</td>
+                <td>${tc.eleName}</td>
+                <td>${tc.eleUnit}</td>
+                <!-- 可根据需要添加更多数据行 -->
+            </tr>`;
+        }).join('');
+    };
+    function buildEmptyP3P4() {
+        document.getElementsByClassName('p3')[0].innerHTML = '<tr><td>无数据</td></tr>';
+        document.getElementsByClassName('p4')[0].innerHTML = '<tr><td>无数据</td></tr>';
+    };
+    function buildP1P3P4(obj) {
+        console.log(obj);
+        //
+        buildP1(obj.p1);
+
+        if (obj.p3.DS.length > 1) {
+            let sPanel = document.getElementsByClassName('select-panel')[0];
+            sPanel.style.display = 'block';
+            sPanel.innerHTML = obj.p3.DS.map((p, ind) => {
+                return `<label>
+        <input ind="${ind}" type="radio" name="_p3_">
+        <span class="custom-checkbox">${p.dataName}</span>
+    </label>`;
+            }).join('');
+            new Array(...sPanel.getElementsByTagName('input')).forEach(inp => {
+                inp.onclick = function() {
+                    let ind = +this.getAttribute('ind');
+                    buildP3(obj.p3, ind);
+                    buildP4(obj.p4, ind);
+                }
+            });
+            sPanel.getElementsByTagName('input')[0].checked = true;
+        } else {
+            let sPanel = document.getElementsByClassName('select-panel')[0];
+            sPanel.style.display = 'none';
+        }
+        if (obj.p3.DS.length > 0) {
+            buildP3(obj.p3, 0);
+            buildP4(obj.p4, 0);
+        } else {
+            buildEmptyP3P4();
+        }
+    }
+</script>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "VideoSpeed",
+  "version": "1.0.0",
+  "scripts": {
+    "package": "del videoSpeed.js && rollup -c --bundleConfigAsCjs",
+    "remove": "del videoSpeed.js"
+  }
+}
