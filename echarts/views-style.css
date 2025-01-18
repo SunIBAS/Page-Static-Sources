@@ -37,6 +37,19 @@ body {
     font-size: 14px;
     cursor: pointer;
 }
+#full_screen_draw {
+    position: absolute;
+    right: 100px;
+    top: 10px;
+    height: 37px;
+    outline: none;
+    background: bisque;
+    border: none;
+    border-radius: 3px;
+    width: 90px;
+    font-size: 14px;
+    cursor: pointer;
+}
 .addJsonDiv {
     position: absolute;
     right: 85px;

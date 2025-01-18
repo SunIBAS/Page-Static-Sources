@@ -16,6 +16,10 @@ window.onload = function () {
     document.getElementById('draw').onclick = function () {
         window.setOption(document.getElementById('text').value);
     };
+    document.getElementById('full_screen_draw').onclick = function () {
+        localStorage.setItem("option", document.getElementById('text').value);
+        window.open('./full_screen.html');
+    };
     let addJsonInput = document.getElementById('addJsonInput');
     let jsonDatas = document.getElementById('jsonDatas');
     let jsonObjCount = 0;

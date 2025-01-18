@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="./echarts/echarts.min.js"></script>
+    <script src="./echarts/echarts-gl.min.js"></script>
+    <script src="./echarts/ecStat.min.js"></script>
+    <script src="./echarts/jquery.js"></script>
+    <style>
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            padding: 0;
+            margin: 0;
+        }
+        #ec {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+<div id="ec"></div>
+<script>
+    window.init_ec_dom = function () {
+        window.app = {};
+        window.ec = echarts.init(document.getElementById('ec'));
+        window.myChart = ec;
+        window.ROOT_PATH = './assert';
+    };
+    window.onresize = function () {
+        setTimeout(() => {
+            window.ec.resize();
+        }, 500);
+    }
+    window.onload = function () {
+        console.log('loaded');
+        init_ec_dom();
+        window.setOption = function (text) {
+            var option = null;
+            eval(text);
+            if (option) {
+                window.ec.setOption(option);
+            }
+        }
+        setTimeout(() => {
+            let option = localStorage.getItem("option")
+            if (option) {
+                option = eval(option);
+                ec.setOption(option);
+                if (option.series[0].type === 'graph') {
+                    let id = setInterval(() => {
+                        ec._chartsViews[0]._symbolDraw._data._itemLayouts.forEach((cor, idx) => {
+                            option.series[0].data[idx].x = cor[0];
+                            option.series[0].data[idx].y = cor[1];
+                        });
+                        localStorage.setItem("option", `option = ${JSON.stringify(option)}`)
+                    }, 300);
+                }
+            }
+        })
+    }
+
+</script>
+</body>
+</html>
