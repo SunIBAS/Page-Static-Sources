@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="./../core/qiniu.min.3.4.2.js"></script>
+    <script src="./../core/buildToken.js"></script>
+    <script src="./../core/uploadFile.js"></script>
+    <script src="./../core/simpleUpload.js"></script>
+    <script src="./test.js"></script>
+</head>
+<body>
+key: <input type="text" id="key"/>
+<br/>
+content: <input type="text" id="fileContent">
+<br/>
+<input id="file" type="file"/>
+<button onclick="onClickText()">提交文本</button>
+<button onclick="onClick()">上传</button>
+<script>
+    const options = {
+        "assessKey": "YBpV7jqPr5TIdG4oMPW5sxmWsS9dhkLCSuM9cWJ4",
+        "secretKey": "-HQzgNogk-yQv9qGmjEpvoDT9JOZ0b_r-wHk_jhx",
+        "bucketName": "ibas",
+    }
+    function onClick() {
+        const key = document.getElementById('key');
+        const finp = document.getElementById('file');
+        if (finp.files.length) {
+            generateUploadToken(options).then(token => {
+                uploadFile(token, finp.files[0], key.value);
+            })
+        }
+    }
+    function onClickText() {
+        const key = document.getElementById('key');
+        const fileContent = document.getElementById('fileContent');
+        if (fileContent.value.length) {
+            // 创建文件内容
+            // const fileContent = "Hello, this is the content of the file!";
+            // 将内容转为 Blob 并创建 File 对象
+            const file = new File([fileContent.value], "example.txt", {
+                type: "text/plain",
+                lastModified: Date.now(),
+            });
+            generateUploadToken(options).then(token => {
+                uploadFile(token, file, key.value);
+                // SimpleUpload.upload(file, token, key.value, "")
+                //     .then(_ => _.json())
+                //     .then(obj => {
+                //         console.log(obj);
+                //     });
+            })
+        }
+    }
+</script>
+</body>
+</html>
