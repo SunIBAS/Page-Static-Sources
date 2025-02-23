@@ -50,7 +50,7 @@ const indicatorConfig = {
     name: "name",
     shortName: "short_name",
     // precision: 4,
-    calcParams: [2],
+    calcParams: {line: 2},
     // 是否需要显示 ohlc(open high low close)柱
     // 看不懂，好像没区别
     shouldOhlc: false,
@@ -110,4 +110,10 @@ watch(modalShow, (newVal) => {
     }
 })
 </script>
+
+<style>
+.editor_code_custom_class .ant-drawer-wrapper-body .ant-drawer-body {
+    overflow: hidden;
+}
+</style>
 
