@@ -16,6 +16,7 @@
 | [QXJ](./qxj/index.html)                           | QXJ 官方接口资料               |
 | [OFD viewer](./OFDViewer/index.html)              | OFD 查看器                  |
 | [Draw](./draw/index.html)                         | 画板                       |
+| [Standard](./standard/index.html)                 | 食品标准                     |
 
 
 
