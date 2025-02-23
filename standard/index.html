@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            background: #f1ffe0;
+            padding: 0;
+            margin: 0;
+            border: none;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: column;
+        }
+        .tit {
+            font-size: 25px;
+            text-align: center;
+        }
+        .title-button {
+            border: 1px solid #2196F3;
+            background: #2196f3;
+            color: white;
+            font-size: 20px;
+            padding: 5px;
+            margin: 10px;
+            cursor: pointer;
+            box-shadow: 0px 0px 6px rgba(0, 0, 0, .72);
+        }
+        .title-button:hover {
+            box-shadow: none;
+            border: 1px solid #bc4bff;
+            color: #bc4bff;
+        }
+        .title-button-selected {
+            background: black;
+        }
+        #table tr:nth-child(odd) {
+            background: #fff6c6;
+        }
+        #table tr:hover {
+            background: #0E9A00;
+            color: white;
+        }
+
+        .page-item {
+            float: left;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            background: #7b59c0;
+            color: white;
+            margin: 2px 10px;
+            line-height: 40px;
+        }
+        .page-item-selected {
+            background: #e8defd;
+            color: black;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div style="">
+    <div class="tit">食品安全国家标准目录（截至2024年3月共1610项）<a href="http://www.nhc.gov.cn/sps/s3594/202403/c54748d1921a4fa196aa2658aa095d37.shtml" target="_blank">原文</a></div>
+    <div id="titles"></div>
+    <div id="pages"></div>
+    <div id="searchDom" style="text-align: center;">
+        <input style="height: 30px;line-height: 30px;width: 300px;" type="text" id="searchInput"/>
+        <button class="title-button" id="search">搜索</button>
+    </div>
+</div>
+<div id="bottom" style="flex: 1;overflow-y: scroll">
+    <div>
+        <table style="width: calc(100vw - 20px);" id="table"></table>
+    </div>
+</div>
+
+</body>
+<script src="./all.js"></script>
+<script src="./links.js"></script>
+<script>
+    window.onload = function() {
+        document.getElementById('titles').innerHTML = all.map((_, idx) => `<button idx="${idx}" class="title-button">${_.title}</button>`).join(' ');
+        window.setLinks = function () {
+            window.tds = new Array(...document.getElementById('table').querySelectorAll('tr')).map(tr => {
+                let tds = tr.getElementsByTagName('td');
+                return tds[tds.length - 1];
+            });
+            window.tds.forEach(td => {
+                let id = td.innerText.match(/[0-9GB]/g).join('');
+                let link = null;
+                if (id in window.links) {
+                    link = window.links[id];
+                }
+                if (!link) {
+                    for (let i in window.links) {
+                        if (i.startsWith(id)) {
+                            link = window.links[i];
+                            break;
+                        }
+                    }
+                }
+                if (link) {
+                    let text = td.innerText;
+                    td.innerHTML = `<a href="${link}" target="_blank">${text}</a>`
+                }
+            });
+        };
+        window.toSearch = function () {
+            document.getElementById('pages').style.display = 'none';
+            let v = document.getElementById('searchInput').value.trim();
+            let dom = "";
+            let has = false;
+            if (v) {
+                window.all.forEach(al => {
+                    let r = al.child.filter(_ => _.includes(v));
+                    if (r.length) {
+                        dom += `<tr><td colspan="4">${al.title}</td></tr>${r.map(_ => `<tr>${_}</tr>`).join(' ')}`;
+                        has = true;
+                    }
+                });
+                console.log(dom);
+                if (has) {
+                    document.getElementById('table').innerHTML = `<tbody>${dom}</tbody>`;
+                    window.setLinks();
+                } else {
+                    document.getElementById('table').innerHTML = "没有搜索到内容";
+                }
+            }
+        };
+        let btns = new Array(...document.querySelectorAll('.title-button'));
+        window.show = function(idx, page) {
+            let content = window.all[idx].child.slice(page * 100, (page + 1) * 100)
+            document.getElementById('table').innerHTML = content.map(_ => `<tr>${_}</tr>`).join(' ');
+            document.getElementById('bottom').scrollTo(0, 0)
+            window.setLinks();
+        };
+        btns.forEach(btn => {
+            btn.onclick = function () {
+                if (this.classList.contains('title-button-selected')) return;
+                btns.forEach(btn => btn.classList.remove("title-button-selected"));
+                btn.classList.add("title-button-selected");
+                if (btn.id === "search") return window.toSearch();
+
+                let idx = parseInt(this.getAttribute('idx'));
+                window.totalPage = parseInt(window.all[idx].child.length / 100);
+                let pageDom = document.getElementById('pages');
+                pageDom.style.display = 'none';
+                if (window.totalPage > 1) {
+                    pageDom.style.display = 'block';
+                    let pageHtml = '';
+                    for (let i = 0;i < window.totalPage;i++) {
+                        pageHtml += `<div class="page-item" idx="${idx}" page="${i}">${i + 1}</div>`;
+                    }
+                    pageDom.innerHTML = pageHtml;
+                    let pi = new Array(...document.getElementsByClassName('page-item'));
+                    pi[0].classList.add("page-item-selected");
+                    pi.forEach(p => {
+                        p.onclick = function () {
+                            if (this.classList.contains('page-item-selected')) return;
+                            pi.forEach(_ => _.classList.remove('page-item-selected'));
+                            this.classList.add('page-item-selected')
+                            let idx = parseInt(this.getAttribute('idx'));
+                            let page = parseInt(this.getAttribute('page'));
+                            window.show(idx, page);
+                        }
+                    })
+                }
+
+                show(idx, 0);
+            }
+        });
+    }
+</script>
+</html>

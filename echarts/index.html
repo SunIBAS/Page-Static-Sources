@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>左右滚动页面</title>
+</head>
+<body>
+<div class="container">
+    <div class="menu">
+        <!-- 左侧菜单内容 -->
+        <ul id="menus">
+        </ul>
+    </div>
+    <div class="content" style="width: calc(100vw - 250px);" id="echarts">
+    </div>
+</div>
+<!-- 弹出内容 -->
+<div class="popup" style="display: none;">
+    <div class="popup-content">
+        <div style="height: 40px;background: #2196f3;padding-left: 10px;">
+            <span class="close-button" onclick="closePopup()">关闭</span>
+        </div>
+        <div style="height: calc(100% - 40px);">
+            <iframe style="height: 100%;width: 100%;" id="ifr"
+                    src="./views.html" frameborder="0"></iframe>
+        </div>
+    </div>
+</div>
+<script src="menus.js"></script>
+<script src="script.js"></script>
+<script src="echart_scripts.js"></script>
+</body>
+</html>

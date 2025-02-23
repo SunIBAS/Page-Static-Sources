@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="text/javascript" src="./dist/klinecharts.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            border: none;
+            overflow: hidden;
+        }
+        #containerJS {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+
+    <script src="./dist/editor/monaco-editor.js"></script>
+</head>
+<body style="margin: 0;height: 100vh">
+<!--<div id="chart" style="height: 100%"></div>-->
+<div id="containerJS"></div>
+</body>
+<script>
+    // const updateItem = {
+    //     "timestamp": 1517846400000,
+    //     "open": 7424.6,
+    //     "high": 7511.3,
+    //     "low": 6032.3,
+    //     "close": 7310.1,
+    //     "volume": 224461
+    // }
+    // const lineItem = {
+    //     // 时间戳，毫秒级别，必要字段
+    //     timestamp: number
+    //     // 开盘价，必要字段
+    //     open: number
+    //     // 收盘价，必要字段
+    //     close: number
+    //     // 最高价，必要字段
+    //     high: number
+    //     // 最低价，必要字段
+    //     low: number
+    //     // 成交量，非必须字段
+    //     volume: number
+    //     // 成交额，非必须字段，如果需要展示技术指标'EMV'和'AVP'，则需要为该字段填充数据。
+    //     turnover: number
+    // }
+    // 创建指标 https://klinecharts.com/api/instance/createIndicator#createindicator-indicator-isstack-paneoptions
+
+    function createCodeEditor() {
+        // For monaco editor
+        require.config({
+            paths: {
+                'vs': './dist/editor/min/vs'
+            }
+        });
+        var editorJS
+        // For JS
+        require(["vs/editor/editor.main"], function () {
+            editorJS = monaco.editor.create(document.getElementById('containerJS'), {
+                value: '// JavaScript',
+                language: 'javascript',
+                theme: 'vs-dark',
+                automaticLayout: true
+            });
+        });
+
+        // When ctrl/cmd + s is pressed, the iframe is reloaded by executing showPreview()
+        document.addEventListener("keydown", function (e) {
+            if ((window.navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) && e.key === 's') {
+                // e.preventDefault()
+                showPreview()
+            }
+        }, false)
+    }
+    function createLinePanel() {
+        // 初始化图表
+        window.chart = klinecharts.init('chart')
+        // 创建一个主图技术指标
+        window.chart.createIndicator('MA', false, { id: 'candle_pane' })
+        // 创建一个副图技术指标VOL
+        window.chart.createIndicator('VOL')
+        // 创建一个副图技术指标MACD
+        window.chart.createIndicator('MACD')
+    }
+    function buildKline() {
+        fetch('./line_example.json').then(_=>_.json()).then(data => {
+            // a = {
+            //     "openTime":1731129480000,
+            //     "open":13.406,
+            //     "high":13.415,
+            //     "low":13.406,
+            //     "close":13.412,
+            //     "vol":88.24,
+            //     "closeTime":1731129539999,
+            //     "turnover":1183.36317,
+            //     "numberTranslation":9,
+            //     "BuyVol":27.09,
+            //     "buyTurnover":363.27522,
+            //     "ignore":"0"
+            // }
+            let lines = data.lines.map(_ => {
+                return {
+                    timestamp: _.openTime,
+                    open: _.open,
+                    high: _.high,
+                    low: _.low,
+                    close: _.close,
+                    volume: _.vol,
+                }
+            })
+            window.chart.applyNewData(lines)
+        });
+
+        // fetch('./mock.json').then(_ => _.json()).then(kLineDataList => {
+        //     // 加载数据
+        //     var chartDataList = kLineDataList.map(function (data) {
+        //         return {
+        //             timestamp: new Date(data[0]).getTime(),
+        //             open: +data[1],
+        //             high: +data[2],
+        //             low: +data[3],
+        //             close: +data[4],
+        //             volume: Math.ceil(+data[5]),
+        //         }
+        //     })
+        //     // window.chart.applyNewData(chartDataList)
+        //     window.chart.applyNewData(chartDataList)
+        // });
+    }
+
+    window.chart = null;
+    window.onresize = function () {
+        window.chart.resize();
+    }
+    window.onload = function () {
+        // createLinePanel();
+        // buildKline();
+
+        createCodeEditor()
+    }
+</script>
+</html>
