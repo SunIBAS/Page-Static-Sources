@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* 基本样式 */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* 卡片样式 */
+        .card {
+            margin: 10px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* 卡片标题样式 */
+        .card h2 {
+            color: #333;
+        }
+
+        /* 卡片内容样式 */
+        .card p {
+            color: #666;
+        }
+    </style>
+    <title>卡片页面示例</title>
+</head>
+<body>
+<div class="card">
+    <h2>卡片标题</h2>
+    <p>这是一个简单的卡片页面示例。</p>
+</div>
+<div class="card">
+    <h2>卡片标题</h2>
+    <p>这是一个简单的卡片页面示例。</p>
+</div>
+<div class="card">
+    <h2>卡片标题</h2>
+    <p>这是一个简单的卡片页面示例。</p>
+</div>
+<script>
+    window.onload = function () {
+        let cards = [
+            {
+                text: '数据信息',
+                content: '包含数据的说明和所有字段的具体信息',
+                link: './datas/index.html'
+            },
+            {
+                text: '接口信息',
+                content: '数据请求的接口说明，包含接口需要的字段',
+                link: './apis/index.html'
+            },
+            {
+                text: '站点信息',
+                content: '站点地图信息',
+                link: './station/station.html'
+            },
+        ];
+        document.body.innerHTML = cards.map(card => {
+            return `<div class="card">
+    <h2>${card.text}</h2>
+    <p>${card.content}</p>
+</div>`
+        });
+        let cardDoms = new Array(...document.getElementsByClassName('card'));
+        cardDoms.forEach((card,ind) => {
+            card.onclick = function () {
+                window.open(cards[ind].link, "_blank");
+            }
+        })
+    };
+</script>
+</body>
+</html>
