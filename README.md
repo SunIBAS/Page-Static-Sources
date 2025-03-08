@@ -17,6 +17,7 @@
 | [OFD viewer](./OFDViewer/index.html)              | OFD 查看器                  |
 | [Standard](./standard/index.html)                 | 食品标准                     |
 | [JSON CRACK](./jsoncrack/index.html)              | JSON 可视化编辑工具             |
+| [color thief](./color_thief/index.html)           | 图片颜色提取                   |
 
 - 画板
 

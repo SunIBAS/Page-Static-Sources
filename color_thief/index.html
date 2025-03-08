@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片上传</title>
+    <script src="./dist/DrawImage.js"></script>
+    <script src="./dist/color-thief.umd.js"></script>
+    <style>
+        body{
+            user-select: none;
+            padding: 0;
+            margin: 0;
+            border: none;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            /*background: #f68727;*/
+            display: flex;
+            flex-direction: row;
+        }
+        .left {
+            width: 90px;
+            background: #00bcd4;
+        }
+        .upload-box {
+            width: 80px;
+            height: 80px;
+            margin: 5px;
+            border-radius: 4px;
+            background: #f68727;
+            cursor: pointer;
+        }
+        .upload-box:hover {
+            background: cadetblue;
+        }
+        .upload-box div {
+            text-align: center;
+            line-height: 80px;
+            font-size: 26px;
+        }
+        .thumbnail-container img {
+            width: 80px;
+            height: 80px;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        .right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .right .canvas {
+            flex: 1;
+            background: #f9f9f9;
+        }
+        .right .color-map {
+            height: 80px;
+        }
+        .color-item {
+            width: 100px;
+            height: 60px;
+            margin: 5px;
+            display: inline-block;
+        }
+
+        /* Toast styles */
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: white;
+            text-align: center;
+            border-radius: 2px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            top: 30px;
+            font-size: 17px;
+        }
+
+        .toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 4.5s;
+        }
+
+        @keyframes fadein {
+            from {top: 0; opacity: 0;}
+            to {top: 30px; opacity: 1;}
+        }
+
+        @keyframes fadeout {
+            from {opacity: 1;}
+            to {opacity: 0; visibility: hidden;}
+        }
+    </style>
+</head>
+
+<body>
+<div id="toast" class="toast">This is a toast message!</div>
+<div class="left">
+    <div class="upload-box" id="uploadBox">
+        <div>上传</div>
+        <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+    <div class="thumbnail-container" id="thumbnailContainer"></div>
+</div>
+<div class="right" id="previewContainer">
+    <div class="canvas">
+        <canvas id="cans"></canvas>
+    </div>
+    <div class="color-map" id="color-map">
+    </div>
+</div>
+<!--<div id="previewContainer" class="preview-container" style="display:none;">-->
+<!--    <img id="previewImage" class="preview" />-->
+<!--    <button class="remove-btn" id="removeBtn">×</button>-->
+<!--</div>-->
+<!--<div class="bottom-section">-->
+<!--    <div class="thumbnail-container" id="thumbnailContainer"></div>-->
+<!--    <div class="upload-box" id="uploadBox">-->
+<!--        <p>点击或拖拽上传图片</p>-->
+<!--        <input type="file" id="fileInput" accept="image/*" hidden>-->
+<!--    </div>-->
+<!--</div>-->
+
+</body>
+
+<script>
+    const uploadBox = document.getElementById("uploadBox");
+    const fileInput = document.getElementById("fileInput");
+    let currentImageSrc = null;
+    const previewContainer = document.getElementById("previewContainer");
+    const thumbnailContainer = document.getElementById("thumbnailContainer");
+    let imageList = JSON.parse(localStorage.getItem("imageList")) || [];
+    let colorMap = document.getElementById('color-map');
+    window.drawImage = new DrawImage('cans');
+    window.colorThief = new ColorThief();
+
+    let toastId = null;
+    function showToast(text) {
+        const toast = document.getElementById("toast");
+        toast.innerText = `COPY [${text}]`;
+        toast.style.background = text;
+        toast.style.color = "white";
+        if (toastId) {
+            clearTimeout(toastId);
+            toast.classList.remove("show");
+        }
+        setTimeout(() => {
+            toast.classList.add("show");
+        },500);
+        toastId = setTimeout(function() {
+            toast.classList.remove("show");
+        }, 5000); // 5 seconds
+    }
+    function updateThumbnails() {
+        thumbnailContainer.innerHTML = "";
+        imageList.forEach((src, index) => {
+            const img = document.createElement("img");
+            img.src = src;
+            img.classList.add("thumbnail");
+            img.addEventListener("click", () => {
+                if (currentImageSrc !== src) {
+                    let oldSrc = currentImageSrc;
+                    currentImageSrc = src;
+                    updateImage(currentImageSrc);
+                    // previewContainer.style.display = "block";
+
+                    // 移除当前点击的图片
+                    imageList.splice(index, 1);
+
+                    // 仅当旧主图有效时，才插入到列表中
+                    if (oldSrc && !imageList.includes(oldSrc)) {
+                        imageList.unshift(oldSrc);
+                    }
+
+                    // 确保新主图放在第一位
+                    if (!imageList.includes(src)) {
+                        imageList.unshift(src);
+                    }
+
+                    saveImages();
+                    updateThumbnails();
+                }
+            });
+            thumbnailContainer.appendChild(img);
+        });
+    }
+
+    function saveImages() {
+        localStorage.setItem("imageList", JSON.stringify(imageList.slice(0, 10)));
+    }
+
+    uploadBox.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (event) => handleFile(event.target.files[0]));
+
+    uploadBox.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        uploadBox.style.background = "#ffebee";
+    });
+
+    uploadBox.addEventListener("dragleave", () => {
+        uploadBox.style.background = "white";
+    });
+
+    uploadBox.addEventListener("drop", (event) => {
+        event.preventDefault();
+        uploadBox.style.background = "white";
+        handleFile(event.dataTransfer.files[0]);
+    });
+
+    function handleFile(file) {
+        if (file && file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const newSrc = e.target.result;
+                if (!imageList.includes(newSrc)) {
+                    imageList.unshift(newSrc);
+                    if (imageList.length > 10) {
+                        imageList.pop();
+                    }
+                    saveImages();
+                    updateThumbnails();
+                }
+                currentImageSrc = newSrc;
+                updateImage(currentImageSrc);
+                // previewContainer.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert("请上传图片文件！");
+        }
+    }
+
+    function updateImage(src) {
+        window.drawImage.changeImageUrl(src);
+        let id = setInterval(() => {
+            if (window.drawImage.image.complete) {
+                let result = window.colorThief.getPalette(window.drawImage.image, 10);
+                // console.log(result);
+                colorMap.innerHTML = result.map(r => {
+                    let color = '#' + r.map(_=>_.toString(16).toUpperCase()).map(_ => `${_.length === 1 ? '0' : ''}${_}`).join('');
+                    return `
+<div class="color-item" color="${color}">
+    <div style="background: ${color};height: 40px;"></div>
+    <div style="text-align: center;" class="color-item-text">${color}</div>
+</div>`
+                }).join(' ');
+                new Array(...colorMap.getElementsByClassName('color-item')).forEach(dom => {
+                    dom.onclick = function () {
+                        navigator.clipboard.writeText(dom.getAttribute('color'));
+                        showToast(dom.getAttribute('color'));
+                    }
+                })
+                clearInterval(id);
+            }
+        })
+    }
+
+    if (imageList.length > 0) {
+        currentImageSrc = imageList[0];
+        updateImage(currentImageSrc);
+        // previewContainer.style.display = "block";
+        updateThumbnails();
+    }
+</script>
+</html>
