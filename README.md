@@ -18,6 +18,9 @@
 | [Standard](./standard/index.html)                 | 食品标准                     |
 | [JSON CRACK](./jsoncrack/index.html)              | JSON 可视化编辑工具             |
 | [color thief](./color_thief/index.html)           | 图片颜色提取                   |
+| [regex-vis](./regex-vis/index.html)               | 正则表达式可视化                 |
+| [image-compress](./image-compress/index.html)     | 图片压缩                     |
+| [rubiks-cube](./rubiks-cube/index.html)           | 魔方                       |
 
 - 画板
 
