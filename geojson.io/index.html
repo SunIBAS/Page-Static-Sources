@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LEAFLET</title>
+    <link rel="stylesheet" href="./leaflet/leaflet.css"/>
+    <link rel="stylesheet" href="./LeafletStyleEditor/Leaflet.StyleEditor.css"/>
+    <script src="./leaflet/leaflet.js"></script>
+    <script src="./BottomInfo.js"></script>
+    <script src="./Btns.js"></script>
+    <script src="./files.js"></script>
+    <script src="./LeafletStyleEditor/Leaflet.StyleEditor.js"></script>
+    <script src="./wkt/wkt.js"></script>
+    <script src="./wkt/wicket-leaflet.js"></script>
+    <script src="./paste.js"></script>
+    <script src="./JsonDrawer.js"></script>
+    <script src="./ListDrawer.js"></script>
+
+    <link rel="stylesheet" href="./codemirror-5.31.0/lib/codemirror.css"/>
+    <script src="./codemirror-5.31.0/lib/codemirror.js"></script>
+    <!--Java代码高亮必须引入-->
+    <script src="./codemirror-5.31.0/clike.js"></script>
+    <!--groovy代码高亮-->
+    <script src="./codemirror-5.31.0/mode/groovy/groovy.js"></script>
+    <script src="./codemirror-5.31.0/mode/python/python.js"></script>
+    <script src="./codemirror-5.31.0/mode/javascript/javascript.js"></script>
+    <!--引入css文件，用以支持主题-->
+    <link rel="stylesheet" href="./codemirror-5.31.0/theme/dracula.css"/>
+
+    <!--支持代码折叠-->
+    <link rel="stylesheet" href="./codemirror-5.31.0/addon/fold/foldgutter.css"/>
+    <script src="./codemirror-5.31.0/addon/fold/foldcode.js"></script>
+    <script src="./codemirror-5.31.0/addon/fold/foldgutter.js"></script>
+    <script src="./codemirror-5.31.0/addon/fold/brace-fold.js"></script>
+    <script src="./codemirror-5.31.0/addon/fold/comment-fold.js"></script>
+    <!--括号匹配-->
+    <script src="./codemirror-5.31.0/addon/edit/matchbrackets.js"></script>
+
+    <script src="./cacheObject.js"></script>
+    <link rel="stylesheet" href="./leaflet/leaflet-custrom.css"/>
+
+    <style>
+        body {
+            overflow: hidden;
+            padding: 0;
+            margin: 0;
+            border: none;
+            display: flex;
+            flex-direction: row;
+        }
+        #leftPanel {
+            display: none;
+            width: 500px;
+            height: calc(100vh - 20px);
+            flex-direction: column;
+        }
+        .layer-item {
+            padding: 10px;
+        }
+        .layer-item-content {
+            background: #d5d5d5;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .layer-item-content>div {
+            margin-bottom: 5px;
+        }
+        .layer-item-li {}
+        .layer-item-btn {}
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+<div id="leftPanel">
+    <div class="layer-item" id="layers">
+    </div>
+</div>
+<div id="map"></div>
+<script src="./toast.js"></script>
+<script>
+    window.map = L.map('map').setView([30.524068012003553, 119.96731403840286], 15);
+    window.layerManager = (new class {
+        constructor() {
+            this.layers = [];
+            this.dom = document.getElementById('layers');
+        }
+        addLayer(layerid) {
+            this.layers.push({
+                layerid: layerid,
+                time: new Date().toUTCString()
+            });
+            this.updateDom(this.layers[this.layers.length - 1])
+        }
+        updateDom(lay) {
+            if (!lay) return;
+            let editId = `style_${lay.layerid}`;
+            let div = document.createElement('div');
+            div.classList.add("layer-item-content");
+            div.innerHTML = `<div class="layer-item-li">${lay.time}</div>
+                <div class="layer-item-btn">
+                    <button layerid="${lay.layerid}">属性表</button>
+                    <button id="${editId}" layerid="${lay.layerid}">样式</button>
+                </div>`;
+            this.dom.append(div);
+            document.getElementById(editId).onclick = function () {
+                let layerid = this.getAttribute('layerid');
+                window.toEdit(layerid);
+            };
+        }
+    });
+
+
+    window.layers = [];
+    window.layers_ids = [];
+    new BottomInfo(window.map);
+    function addParseObjToMap(obj, options = {}, id="", name="") {
+        if (window.layers_ids.includes(id)) {
+            let target_layer = window.layers.filter(l => l.id === id);
+            if (target_layer.length > 0) {
+                map.fitBounds(target_layer[0].getBounds())
+            }
+            return;
+        }
+        let geo = null;
+        if (obj.type === window.vectorType.geojson) {
+            console.log("add obj")
+            geo = L.geoJSON(obj.data, {
+                style: function () {
+                    return {
+                        color: 'blue',
+                        weight: 2,
+                    }
+                }
+            });
+
+        } else if (obj.type === window.vectorType.wkt) {
+            // obj.data.addTo(window.map);
+            // window.map.fitBounds(obj.data.getBounds());
+            if (typeof obj.data === 'string') {
+                let wkt = new Wkt.Wkt();
+                wkt.read(obj.data);
+                let json = wkt.toJson()
+                return addParseObjToMap({
+                    type: window.vectorType.geojson,
+                    data: {
+                        "type": "FeatureCollection",
+                        "features": [
+                            {
+                                "type": "Feature",
+                                "properties": {},
+                                "geometry": json
+                            }
+                        ]
+                    }
+                }, options, id, name);
+            } else {
+                geo = obj.data;
+            }
+        }
+        if (geo) {
+            geo.setStyle(options);
+            geo.addTo(window.map);
+            window.map.fitBounds(geo.getBounds());
+            window.layers.push(geo);
+            window.cacheLayerStyle(geo, obj, id, name);
+            window.layers_ids.push(geo.id);
+        }
+    };
+
+    // 添加自定义按钮控件
+    function openHistoryDrawer() {
+        let allLayers = window.cacheObject.get(window.layer_cache_name, []).map(o => {
+            return {
+                name: o.name,
+                value: o.id
+            };
+        });
+        ListDrawer.initDrawer({
+            title: "历史记录",
+            items: allLayers,
+            onSelect(item) {
+                console.log(item);
+                let obj = window.cacheObject.get(`layer.${item.value}.obj`, {});
+                let opt = window.cacheObject.get(`layer.${item.value}.style`, {});
+                addParseObjToMap(obj, opt, item.value, item.name);
+            },
+            onDelete(item) {
+                let ok = confirm("删除后无法恢复");
+                if (ok) {
+                    window.cacheObject.delete(`layer.${item.value}.obj`, {});
+                    window.cacheObject.delete(`layer.${item.value}.style`, {});
+                    let newAllLayers = window.cacheObject.get(window.layer_cache_name, []).filter(l => l.id !== item.value);
+                    window.cacheObject.set(window.layer_cache_name, newAllLayers);
+                    openHistoryDrawer();
+                }
+            }
+        })
+    }
+    L.control.customButtons({
+        btns: [
+            {
+                text: "打开📃",
+                action() {
+                    openVector().then(addParseObjToMap);
+                },
+            },
+            {
+                text: "粘贴🪡",
+                action() {
+                    pasteFromClipboard().then(addParseObjToMap)
+                },
+            },
+            {
+                text: "编辑✒️",
+                action() {
+                    JsonDrawer.initDrawer({ onSave: function () {
+                        let obj = window.editor.getValue();
+                        try {
+                            obj = JSON.parse(obj);
+                            addParseObjToMap({
+                                type: window.vectorType.geojson,
+                                data: obj,
+                            });
+                            return;
+                        } catch (e){
+                            try {
+                                addParseObjToMap({type: window.vectorType.wkt, data: obj});
+                            } catch (e) {}
+                        }
+                        console.log(obj);
+                    }});
+                },
+            },
+            {
+                text: "历史🪣",
+                action() {
+                    openHistoryDrawer();
+                },
+            }
+        ],
+    }).addTo(window.map);
+    function toEdit(layerid) {
+        // window.layerEditor.showEditor();
+        window.layerEditor.initChangeStyle(window.map._layers[layerid]);
+        // new Array(...document.getElementsByClassName('leaflet-control-styleeditor')).forEach(_ => _.style.display = 'none');
+    }
+    window.layerEditor = L.control.styleEditor();
+    window.map.addControl(window.layerEditor);
+    // new Array(...document.getElementsByClassName('leaflet-control-styleeditor')).forEach(_ => _.style.display = 'none');
+</script>
+</body>
+</html>

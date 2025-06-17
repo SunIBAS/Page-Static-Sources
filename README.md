@@ -21,6 +21,7 @@
 | [regex-vis](./regex-vis/index.html)               | 正则表达式可视化                 |
 | [image-compress](./image-compress/index.html)     | 图片压缩                     |
 | [rubiks-cube](./rubiks-cube/index.html)           | 魔方                       |
+| [geojson.io](./geojson.io/index.html)             | 模仿实现 geojson.io 功能 |
 
 - 画板
 
