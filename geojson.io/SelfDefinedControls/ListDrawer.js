@@ -63,6 +63,9 @@ const ListDrawer = (() => {
         background-color: #f44336;
         color: white;
       }
+      .list-drawer-content {
+          overflow-y: scroll;
+      }
       .list-actions {
         margin-top: auto;
         text-align: right;
@@ -78,7 +81,7 @@ const ListDrawer = (() => {
         drawer.id = "listDrawer";
         drawer.innerHTML = `
       <h3 id="listDrawerTitle">列表</h3>
-      <div id="listDrawerContent"></div>
+      <div class="list-drawer-content" id="listDrawerContent"></div>
       <div class="list-actions">
         <button onclick="ListDrawer.close()">关闭</button>
       </div>

@@ -6,15 +6,18 @@
     <link rel="stylesheet" href="./leaflet/leaflet.css"/>
     <link rel="stylesheet" href="./LeafletStyleEditor/Leaflet.StyleEditor.css"/>
     <script src="./leaflet/leaflet.js"></script>
-    <script src="./BottomInfo.js"></script>
-    <script src="./Btns.js"></script>
+    <script src="SelfDefinedControls/BottomInfo.js"></script>
+    <script src="SelfDefinedControls/Btns.js"></script>
     <script src="./files.js"></script>
     <script src="./LeafletStyleEditor/Leaflet.StyleEditor.js"></script>
     <script src="./wkt/wkt.js"></script>
     <script src="./wkt/wicket-leaflet.js"></script>
     <script src="./paste.js"></script>
-    <script src="./JsonDrawer.js"></script>
-    <script src="./ListDrawer.js"></script>
+    <script src="SelfDefinedControls/JsonDrawer.js"></script>
+    <script src="SelfDefinedControls/ListDrawer.js"></script>
+
+    <script src="./leaflet/draw/leaflet.draw-src.js"></script>
+    <link rel="stylesheet" href="./leaflet/draw/leaflet.draw.css"/>
 
     <link rel="stylesheet" href="./codemirror-5.31.0/lib/codemirror.css"/>
     <script src="./codemirror-5.31.0/lib/codemirror.js"></script>
@@ -38,6 +41,9 @@
 
     <script src="./cacheObject.js"></script>
     <link rel="stylesheet" href="./leaflet/leaflet-custrom.css"/>
+    <script src="SelfDefinedControls/DrawFeature.js"></script>
+
+    <script src="SelfDefinedControls/LayerControl.js"></script>
 
     <style>
         body {
@@ -71,6 +77,46 @@
             width: 100vw;
             height: 100vh;
         }
+
+        .leaflet-draw-toolbar {
+            background: white !important;
+        }
+        .leaflet-draw-toolbar a {
+            background-color: white;
+        }
+        .leaflet-draw-toolbar a:hover {
+            background-color: #d6d6d6;
+        }
+        .leaflet-control-styleeditor a {
+            background-color: white;
+        }
+        .leaflet-control-styleeditor a:hover {
+            background-color: #d6d6d6;
+        }
+        .leaflet-bottom {
+            bottom: 25px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;   /* 竖向滚动条宽度 */
+            height: 6px;  /* 横向滚动条高度 */
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;  /* 滚动条轨道背景 */
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.3); /* 滚动条颜色 */
+            border-radius: 3px;       /* 滚动条圆角 */
+            border: 1px solid transparent; /* 给滚动条加个透明边框，防止跳动 */
+        }
+
+        /* Firefox */
+        * {
+            scrollbar-width: thin;        /* 滚动条细 */
+            scrollbar-color: rgb(156 255 40) transparent; /* 滚动条颜色和轨道 */
+        }
     </style>
 </head>
 <body>
@@ -81,46 +127,23 @@
 <div id="map"></div>
 <script src="./toast.js"></script>
 <script>
-    window.map = L.map('map').setView([30.524068012003553, 119.96731403840286], 15);
-    window.layerManager = (new class {
-        constructor() {
-            this.layers = [];
-            this.dom = document.getElementById('layers');
-        }
-        addLayer(layerid) {
-            this.layers.push({
-                layerid: layerid,
-                time: new Date().toUTCString()
-            });
-            this.updateDom(this.layers[this.layers.length - 1])
-        }
-        updateDom(lay) {
-            if (!lay) return;
-            let editId = `style_${lay.layerid}`;
-            let div = document.createElement('div');
-            div.classList.add("layer-item-content");
-            div.innerHTML = `<div class="layer-item-li">${lay.time}</div>
-                <div class="layer-item-btn">
-                    <button layerid="${lay.layerid}">属性表</button>
-                    <button id="${editId}" layerid="${lay.layerid}">样式</button>
-                </div>`;
-            this.dom.append(div);
-            document.getElementById(editId).onclick = function () {
-                let layerid = this.getAttribute('layerid');
-                window.toEdit(layerid);
-            };
-        }
-    });
-
+    window.map = L.map('map', {}).setView([30.524068012003553, 119.96731403840286], 15);
 
     window.layers = [];
     window.layers_ids = [];
+    window.df = new DrawFeature(window.map,() => {
+        layerEditor._container.style.display = 'none';
+        document.getElementById('custom-btn-funs').style.display = 'none';
+    });
     new BottomInfo(window.map);
-    function addParseObjToMap(obj, options = {}, id="", name="") {
+    function addParseObjToMap(obj, options = {}, id="", name="", update=false) {
         if (window.layers_ids.includes(id)) {
             let target_layer = window.layers.filter(l => l.id === id);
             if (target_layer.length > 0) {
                 map.fitBounds(target_layer[0].getBounds())
+            }
+            if (update) {
+                window.cacheLayerStyle.updateLayer(obj, id);
             }
             return;
         }
@@ -133,7 +156,17 @@
                         color: 'blue',
                         weight: 2,
                     }
-                }
+                },
+                pointToLayer: function (feature, latlng) {
+                    if (feature.properties && feature.properties._type === "circle") {
+                        return L.circle(latlng, {
+                            radius: feature.properties._radius || 100,
+                            color: 'red'
+                        });
+                    } else {
+                        return L.marker(latlng);
+                    }
+                },
             });
 
         } else if (obj.type === window.vectorType.wkt) {
@@ -161,12 +194,40 @@
             }
         }
         if (geo) {
+            // geo.eachLayer(function (layer) {
+            //     drawnItems.addLayer(layer);
+            // });
             geo.setStyle(options);
             geo.addTo(window.map);
             window.map.fitBounds(geo.getBounds());
             window.layers.push(geo);
-            window.cacheLayerStyle(geo, obj, id, name);
+            const cacheObj = window.cacheLayerStyle.addNewLayer(geo, obj, id, name);
+            window.df.addFeature(geo, geo.id)
             window.layers_ids.push(geo.id);
+
+            const MyLayerControl = LayerControl(geo, {
+                id: geo.id,
+                name: cacheObj.name,
+                onDelete(layer, id) {
+                    window.layers_ids.splice(window.layers_ids.indexOf(id), 1)
+                },
+                onExport(layer) {
+                    let obj = customExport(layer);
+                    openEditor(JSON.stringify(obj.geojson, '', '\t'));
+                },
+                onEdit(layer) {
+                    if (window.FeatureEditing) {
+                        Toast('请先结束编辑');
+                        return;
+                    }
+                    window.FeatureEditing = true;
+                    // console.log(layer)
+                    window.df.toDraw(layer.id);
+                }
+            });
+            map.addControl(new MyLayerControl({
+                position: 'bottomright',
+            }));
         }
     };
 
@@ -198,56 +259,178 @@
                 }
             }
         })
-    }
+    };
+
+    window.FeatureEditing = false;
+    window.openEditor = function (content) {
+        if (window.FeatureEditing) {
+            Toast('请先结束编辑');
+            return;
+        }
+        JsonDrawer.initDrawer({
+            initialData: content || "",
+            onSave: function () {
+                let obj = window.editor.getValue();
+                try {
+                    obj = JSON.parse(obj);
+                    addParseObjToMap({
+                        type: window.vectorType.geojson,
+                        data: obj,
+                    });
+                    return;
+                } catch (e){
+                    try {
+                        addParseObjToMap({type: window.vectorType.wkt, data: obj});
+                    } catch (e) {}
+                }
+                console.log(obj);
+            }
+        });
+    };
     L.control.customButtons({
+        position: "topleft",
+        btns: [
+            {
+                text: "创建矢量🌍",
+                action() {
+                    if (window.FeatureEditing) {
+                        Toast('请先结束编辑');
+                        return;
+                    }
+                    window.FeatureEditing = true;
+                    window.df._init_drawer_();
+                }
+            },
+            {
+                text: "结束编辑🔒",
+                action() {
+                    if (window.FeatureEditing) {
+                        window.FeatureEditing = false;
+                        layerEditor._container.style.display = 'block';
+                        document.getElementById('custom-btn-funs').style.display = 'block';
+                        let obj = window.df.getDrawObj();
+                        if (window.df.currentEditId) {
+                            // 更新
+                            addParseObjToMap({
+                                type: window.vectorType.geojson,
+                                data: obj.geojson
+                            }, obj.options, window.df.currentEditId, "", true);
+                        } else {
+                            if (obj.geojson.features.length) {
+                                // 添加
+                                addParseObjToMap({
+                                    type: window.vectorType.geojson,
+                                    data: obj.geojson
+                                }, obj.options);
+                            } else {
+                                Toast("未添加任何矢量")
+                            }
+                        }
+                        window.df.stopDrawing();
+                    }
+                }
+            },
+        ]
+    }).addTo(map);
+    L.control.customButtons({
+        id: "custom-btn-funs",
+        position: "topleft",
         btns: [
             {
                 text: "打开📃",
                 action() {
+                    if (window.FeatureEditing) {
+                        Toast('请先结束编辑');
+                        return;
+                    }
                     openVector().then(addParseObjToMap);
                 },
             },
             {
                 text: "粘贴🪡",
                 action() {
+                    if (window.FeatureEditing) {
+                        Toast('请先结束编辑');
+                        return;
+                    }
                     pasteFromClipboard().then(addParseObjToMap)
                 },
             },
             {
-                text: "编辑✒️",
+                text: "GeoStr✒️",
                 action() {
-                    JsonDrawer.initDrawer({ onSave: function () {
-                        let obj = window.editor.getValue();
-                        try {
-                            obj = JSON.parse(obj);
-                            addParseObjToMap({
-                                type: window.vectorType.geojson,
-                                data: obj,
-                            });
-                            return;
-                        } catch (e){
-                            try {
-                                addParseObjToMap({type: window.vectorType.wkt, data: obj});
-                            } catch (e) {}
-                        }
-                        console.log(obj);
-                    }});
+                    // if (window.FeatureEditing) {
+                    //     Toast('请先结束编辑');
+                    //     return;
+                    // }
+                    // JsonDrawer.initDrawer({ onSave: function () {
+                    //     let obj = window.editor.getValue();
+                    //     try {
+                    //         obj = JSON.parse(obj);
+                    //         addParseObjToMap({
+                    //             type: window.vectorType.geojson,
+                    //             data: obj,
+                    //         });
+                    //         return;
+                    //     } catch (e){
+                    //         try {
+                    //             addParseObjToMap({type: window.vectorType.wkt, data: obj});
+                    //         } catch (e) {}
+                    //     }
+                    //     console.log(obj);
+                    // }});
+                    openEditor("");
                 },
             },
             {
                 text: "历史🪣",
                 action() {
+                    if (window.FeatureEditing) {
+                        Toast('请先结束编辑');
+                        return;
+                    }
                     openHistoryDrawer();
                 },
-            }
+            },
+            {
+                text: "导出矢量😘",
+                action() {
+                    if (window.FeatureEditing) {
+                        Toast('请先结束编辑');
+                        return;
+                    }
+                    let allLayers = new L.FeatureGroup();
+                    map.eachLayer(layer => {
+                        // 只收集矢量图层（不包括 tile 图层、底图等）
+                        if (layer instanceof L.Path || layer instanceof L.Marker) {
+                            allLayers.addLayer(layer);
+                        }
+                    });
+
+                    let geojson = customExport(allLayers);
+                    if (geojson.geojson.features.length) {
+                        const blob = new Blob([JSON.stringify(geojson.geojson, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'map_export.geojson';
+                        link.click();
+                        if (geojson.hasCirle) {
+                            Toast("注意：当前矢量中包含[圆要素]，在其他平台将显示为点。")
+                        }
+                    } else {
+                        Toast("地图中没有可以导出的要素");
+                    }
+                }
+            },
         ],
     }).addTo(window.map);
-    function toEdit(layerid) {
-        // window.layerEditor.showEditor();
-        window.layerEditor.initChangeStyle(window.map._layers[layerid]);
-        // new Array(...document.getElementsByClassName('leaflet-control-styleeditor')).forEach(_ => _.style.display = 'none');
-    }
-    window.layerEditor = L.control.styleEditor();
+
+    window.layerEditor = L.control.styleEditor({
+        checkBeforeOnLayerAdd() {
+            return !window.FeatureEditing;
+        }
+    });
     window.map.addControl(window.layerEditor);
     // new Array(...document.getElementsByClassName('leaflet-control-styleeditor')).forEach(_ => _.style.display = 'none');
 </script>

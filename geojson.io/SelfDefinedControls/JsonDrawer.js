@@ -23,9 +23,11 @@ const JsonDrawer = (() => {
       }
       #jsonDrawer {
         position: fixed;
-        top: 0; right: -400px;
-        width: 400px; height: 100%;
-        background: #fff;
+        top: 0; 
+        right: -50vw;
+        width: 50vw;
+        height: 100%;
+        background: #282a36;
         box-shadow: -2px 0 10px rgba(0,0,0,0.2);
         padding: 20px;
         box-sizing: border-box;
@@ -65,13 +67,13 @@ const JsonDrawer = (() => {
         drawer = document.createElement("div");
         drawer.id = "jsonDrawer";
         drawer.innerHTML = `
-      <h3>编辑 JSON / WKT </h3>
+      <h3 style="color: white;">编辑 JSON / WKT <button id="jsonDrawerSaveBtn" style="float: right;">保存</button> </h3>
       <textarea id="jsonDrawerInput" placeholder="{ }"></textarea>
       <div class="error" id="jsonDrawerError"></div>
-      <div class="actions">
-        <button id="jsonDrawerSaveBtn">保存</button>
-        <button onclick="JsonDrawer.close()">关闭</button>
-      </div>
+<!--      <div class="actions">-->
+<!--        <button id="jsonDrawerSaveBtn">保存</button>-->
+<!--        <button onclick="JsonDrawer.close()">关闭</button>-->
+<!--      </div>-->
     `;
 
         document.body.appendChild(overlay);
@@ -110,7 +112,12 @@ const JsonDrawer = (() => {
 
     function openDrawer(initialData = {}, onSave = null, name='json') {
         createDrawerElements(name, () => {
-            jsonInput.value = JSON.stringify(initialData || {}, null, 2);
+            if (typeof initialData === "string") {
+                jsonInput.value = initialData;
+            } else {
+                jsonInput.value = JSON.stringify(initialData || {}, null, 2);
+            }
+            window.editor.setValue(jsonInput.value);
             errorMessage.textContent = "";
             drawer.classList.add("open");
             overlay.style.display = "block";

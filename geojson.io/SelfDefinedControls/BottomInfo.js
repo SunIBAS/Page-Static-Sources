@@ -97,6 +97,7 @@ class BottomInfo {
                 let sl = document.getElementsByClassName('leaflet-control-scale');
                 if (sl.length) {
                     clearInterval(id);
+                    // sl[0].style.display = 'none';
                     sl[0].parentElement.style.display = 'none';
                     this.map.on('zoomend',() => {
                         scalaDivChildrenText.innerText = sl[0].children[0].innerHTML;

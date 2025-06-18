@@ -43,31 +43,55 @@ window.cacheObject = (function (storage) {
 
 window.cacheLayerStyle = (function () {
     let all_layers = window.cacheObject.get(window.layer_cache_name, [])
-    return function (layer, obj, id, name) {
-        if (!id && !name) {
-            id = new Date().getTime();
-            name = prompt("命名该对象", id)
-        }
-        layer.id = id;
-        let fid = null;
-        for (let id in layer._layers) {
-            fid = id;
-            break;
-        }
-        let firstLayer = layer._layers[fid];
+    return {
+        addNewLayer(layer, obj, id, name) {
+            if (!id) {
+                id = new Date().getTime();
+                name = prompt("命名该对象", id)
+            }
+            if (!name) {
+                let obj = all_layers.filter(al => al.id === id);
+                if (obj.length !== 0) {
+                    name = obj[0].name;
+                }
+            }
+            layer.id = id;
+            let fid = null;
+            for (let id in layer._layers) {
+                fid = id;
+                break;
+            }
+            let firstLayer = layer._layers[fid];
 
-        let oldSetStyle = firstLayer.setStyle;
-        firstLayer.setStyle = function (value) {
-            oldSetStyle.bind(firstLayer)(value);
-            window.cacheObject.set(`layer.${id}.style`, firstLayer.options);
+            let oldSetStyle = firstLayer.setStyle;
+            firstLayer.setStyle = function (value) {
+                oldSetStyle.bind(firstLayer)(value);
+                window.cacheObject.set(`layer.${id}.style`, firstLayer.options);
+            }
+            window.cacheObject.set(`layer.${id}.obj`, obj);
+            if (all_layers.filter(al => al.id === id).length === 0) {
+                all_layers.push({
+                    id: id,
+                    name: name,
+                });
+            }
+            window.cacheObject.set(window.layer_cache_name, all_layers);
+            return {
+                layer,
+                obj,
+                id,
+                name,
+            }
+        },
+        updateLayer(obj, id, name) {
+            window.cacheObject.set(`layer.${id}.obj`, obj);
+            if (name && all_layers.filter(al => al.id === id).length === 0) {
+                all_layers.push({
+                    id: id,
+                    name: name,
+                });
+            }
+            window.cacheObject.set(window.layer_cache_name, all_layers);
         }
-        window.cacheObject.set(`layer.${id}.obj`, obj);
-        if (all_layers.filter(al => al.id === id).length === 0) {
-            all_layers.push({
-                id: id,
-                name: name,
-            });
-        }
-        window.cacheObject.set(window.layer_cache_name, all_layers);
     }
 })();

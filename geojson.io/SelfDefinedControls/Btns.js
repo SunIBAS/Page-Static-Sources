@@ -1,6 +1,7 @@
 L.Control.CustomButtons = L.Control.extend({
     options: {
-        position: "topright", // 位置
+        position: "bottomleft", // 位置
+        id: `cb_${new Date().getTime()}`,
         btns: [
             {
                 text: "btn1",
@@ -17,6 +18,7 @@ L.Control.CustomButtons = L.Control.extend({
 
     onAdd: function (map) {
         let container = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-custom-buttons");
+        container.id = this.options.id;
 
         this.options.btns.forEach(btn => {
             let dom = L.DomUtil.create("a", "leaflet-bar-part", container);

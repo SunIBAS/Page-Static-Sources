@@ -1248,7 +1248,8 @@ var leafletstyleeditor =
                         // internal
                         currentElement: null,
                         _editLayers: [],
-                        _layerGroups: []
+                        _layerGroups: [],
+                        checkBeforeOnLayerAdd: () => true,
                     },
                     initialize: function initialize(options) {
                         if (options) {
@@ -1336,9 +1337,11 @@ var leafletstyleeditor =
                         this.options.currentElement = layer.layer;
                     },
                     onLayerAdd: function onLayerAdd(e) {
-                        if (this.options.currentElement) {
-                            if (e.layer === this.options.util.getCurrentElement()) {
-                                this.enable(e.layer);
+                        if (this.options.checkBeforeOnLayerAdd(e)) {
+                            if (this.options.currentElement) {
+                                if (e.layer === this.options.util.getCurrentElement()) {
+                                    this.enable(e.layer);
+                                }
                             }
                         }
                     },
