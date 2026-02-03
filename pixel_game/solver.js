@@ -82,25 +82,20 @@ class NonogramSolver {
         return true;
     }
 }
-
-// 对应的运行逻辑
-function runSolver() {
-    const parse = (id) => document.getElementById(id).value.trim().split('\n').map(l => l.split(',').filter(x => x).map(Number));
-    const A = parse('inputA');
-    const B = parse('inputB');
-
-    const solver = new NonogramSolver(A, B);
-    // 使用 setTimeout 避免阻塞 UI 渲染
-    setTimeout(async () => {
-        const start = performance.now();
-        const result = await solver.solve();
-        const end = performance.now();
-
-        console.log(`求解耗时: ${(end - start).toFixed(2)}ms`);
-        if (result) draw(result, A, B);
-        else alert("无解，请检查数据准确性");
-    }, 10);
-}
+// 优化后的 parse 方法
+const parse = (text) => {
+    return text
+        .trim()                    // 去掉首尾空格
+        .split('\n')              // 按行分割
+        .map(line => {
+            // 使用正则匹配连续的数字
+            // match 会返回一个数组，例如 ["1", "215", "5"]
+            const matches = line.match(/\d+/g);
+            
+            // 如果这一行没数字，返回空数组，否则转为数字类型
+            return matches ? matches.map(Number) : [];
+        });
+};
 
 // 页面渲染函数
 function draw(grid, rowsInfo, colsInfo) {
@@ -187,35 +182,13 @@ function draw(grid, rowsInfo, colsInfo) {
     });
 }
 
-// function runSolver() {
-//     // 示例数据：一个 10x10 的笑脸图案
-//     const B = [
-//         [1,1],[5],[2],[2],[2,1], [1,3,1], [1,3,1], [6,2], [7],[2]
-//     ]; // 行
-//     const A = [
-//         [2], [3], [3], [4], [8], [9], [1,2], [2, 1,1],[1,2,1],[1]
-//     ]; // 列
-//
-//     const solver = new NonogramSolver(A, B);
-//     solver.solve().then(result => {
-//         draw(result);
-//     });
-// }
-
-function parseInput(text) {
-    // 将字符串按行分割，并将每行的逗号分隔符转为数字数组
-    return text.trim().split('\n').map(line =>
-        line.split(/[, ]/).filter(x => x.trim() !== "").map(Number)
-    );
-}
-
 function runSolver() {
     const rawA = document.getElementById('inputA').value;
     const rawB = document.getElementById('inputB').value;
 
     try {
-        const A = parseInput(rawA);
-        const B = parseInput(rawB);
+        const A = parse(rawA);
+        const B = parse(rawB);
 
         if (A.length !== B.length) alert("行和列的数量应相等");
 
