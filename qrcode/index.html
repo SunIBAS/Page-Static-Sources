@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件二维码分片生成器</title>
+    <script src="./vue.global.prod.js"></script>
+    <script src="./qrcode-generator.js"></script>
+    <script src="./fflate.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+        .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+        h1 { text-align: center; margin-bottom: 8px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 24px; font-size: 14px; }
+        .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .drop-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all .2s; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #4a90d9; background: #f0f7ff; }
+        .drop-zone p { font-size: 16px; color: #888; }
+        .drop-zone .filename { font-size: 18px; font-weight: 600; color: #333; margin-top: 8px; }
+        .settings { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin: 16px 0; }
+        .settings label { font-size: 14px; display: flex; align-items: center; gap: 6px; }
+        .settings input[type="number"] { width: 80px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; transition: all .2s; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-primary:disabled { background: #b0c4de; cursor: not-allowed; }
+        .btn-secondary { background: #e8e8e8; color: #333; }
+        .btn-secondary:hover { background: #ddd; }
+        .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-danger:hover { background: #c0392b; }
+        .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+        .progress-bar { width: 100%; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; margin: 12px 0; }
+        .progress-bar .fill { height: 100%; background: #4a90d9; transition: width .3s; border-radius: 3px; }
+        .status { font-size: 14px; color: #666; margin: 8px 0; min-height: 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; }
+        .stat { text-align: center; padding: 12px; background: #f9f9f9; border-radius: 8px; }
+        .stat .value { font-size: 22px; font-weight: 700; color: #4a90d9; }
+        .stat .label { font-size: 12px; color: #888; margin-top: 4px; }
+        .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; }
+        .qr-item { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 12px; text-align: center; page-break-inside: avoid; }
+        .qr-item img { width: 100%; max-width: 160px; }
+        .qr-item .qr-index { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .qr-item .qr-size { font-size: 11px; color: #999; }
+        .batch-download { margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>文件二维码分片生成器</h1>
+            <p class="subtitle">将大文件压缩后分割为多个二维码，接收方扫码拼接即可还原</p>
+
+            <div class="card">
+                <div class="drop-zone" :class="{ dragover }"
+                     @click="$refs.fileInput.click()"
+                     @dragover.prevent="dragover = true"
+                     @dragleave="dragover = false"
+                     @drop.prevent="onDrop">
+                    <p v-if="!file">点击或拖拽文件到此处</p>
+                    <template v-else>
+                        <p>已选择文件</p>
+                        <div class="filename">{{ file.name }}</div>
+                    </template>
+                </div>
+                <input type="file" ref="fileInput" style="display:none" @change="onFileSelect">
+
+                <div class="settings" v-if="file">
+                    <label>
+                        每片(二进制):
+                        <input type="number" v-model.number="chunkBytes" min="200" max="2500" step="100"> 字节
+                    </label>
+                    <label>
+                        压缩级别:
+                        <select v-model.number="compressionLevel">
+                            <option :value="0">不压缩</option>
+                            <option :value="1">快速</option>
+                            <option :value="6">默认</option>
+                            <option :value="9">最大压缩</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="btns" v-if="file">
+                    <button class="btn btn-primary" @click="generate" :disabled="generating">
+                        {{ generating ? '生成中...' : '生成二维码' }}
+                    </button>
+                    <button class="btn btn-secondary" @click="reset" :disabled="generating">清空</button>
+                </div>
+
+                <div v-if="generating || progressText" class="status">{{ progressText }}</div>
+                <div v-if="generating" class="progress-bar">
+                    <div class="fill" :style="{ width: progressPct + '%' }"></div>
+                </div>
+            </div>
+
+            <div class="card" v-if="result">
+                <div class="stats">
+                    <div class="stat">
+                        <div class="value">{{ result.originalSize }}</div>
+                        <div class="label">原始大小</div>
+                    </div>
+                    <div class="stat">
+                        <div class="value">{{ result.compressedSize }}</div>
+                        <div class="label">压缩后</div>
+                    </div>
+                    <div class="stat">
+                        <div class="value">{{ result.ratio }}</div>
+                        <div class="label">压缩率</div>
+                    </div>
+                    <div class="stat">
+                        <div class="value">{{ result.totalChunks }}</div>
+                        <div class="label">二维码数</div>
+                    </div>
+                </div>
+
+                <div class="btns batch-download">
+                    <button class="btn btn-primary" @click="downloadAll">下载全部二维码图片</button>
+                    <button class="btn btn-secondary" @click="printAll">打印全部</button>
+                </div>
+
+                <div class="qr-grid">
+                    <div class="qr-item" v-for="(img, i) in result.images" :key="i">
+                        <div class="qr-index">#{{ i + 1 }} / {{ result.totalChunks }}</div>
+                        <img :src="img" :alt="'分片 ' + (i+1)">
+                        <div class="qr-size">{{ result.chunkSizes[i] }} B</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const { createApp, ref, reactive } = Vue;
+
+    createApp({
+        setup() {
+            const fileInput = ref(null);
+            const file = ref(null);
+            const dragover = ref(false);
+            const chunkBytes = ref(1500);
+            const compressionLevel = ref(6);
+            const generating = ref(false);
+            const progressText = ref('');
+            const progressPct = ref(0);
+            const result = ref(null);
+
+            const onFileSelect = (e) => {
+                const f = e.target.files[0];
+                if (f) { file.value = f; result.value = null; }
+            };
+            const onDrop = (e) => {
+                dragover.value = false;
+                const f = e.dataTransfer.files[0];
+                if (f) { file.value = f; result.value = null; }
+            };
+            const reset = () => {
+                file.value = null;
+                result.value = null;
+                if (fileInput.value) fileInput.value.value = '';
+            };
+
+            const toBase64 = (uint8) => {
+                let binary = '';
+                const chunk = 8192;
+                for (let i = 0; i < uint8.length; i += chunk) {
+                    binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunk));
+                }
+                return btoa(binary);
+            };
+
+            const generate = async () => {
+                if (!file.value) return;
+                generating.value = true;
+                result.value = null;
+
+                try {
+                    progressText.value = '读取文件...';
+                    progressPct.value = 10;
+                    const buf = await file.value.arrayBuffer();
+                    const input = new Uint8Array(buf);
+
+                    progressText.value = '压缩中...';
+                    progressPct.value = 25;
+                    await new Promise(r => setTimeout(r, 50));
+
+                    let compressed;
+                    if (compressionLevel.value === 0) {
+                        compressed = input;
+                    } else {
+                        compressed = fflate.deflateSync(input, { level: compressionLevel.value });
+                    }
+
+                    const compressedSize = compressed.length;
+                    const ratio = ((1 - compressedSize / input.length) * 100).toFixed(1);
+                    progressText.value = `压缩完成: ${formatSize(input.length)} → ${formatSize(compressedSize)} (${ratio}% 减少)`;
+                    progressPct.value = 40;
+                    await new Promise(r => setTimeout(r, 200));
+
+                    const cs = chunkBytes.value;
+                    const totalChunks = Math.ceil(compressedSize / cs);
+                    progressText.value = `分为 ${totalChunks} 片，正在生成二维码...`;
+
+                    const images = [];
+                    const chunkSizes = [];
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * cs;
+                        const end = Math.min(start + cs, compressedSize);
+                        const slice = compressed.slice(start, end);
+                        chunkSizes.push(end - start);
+
+                        const b64 = toBase64(slice);
+                        const payload = `${i + 1}/${totalChunks}:${b64}`;
+
+                        progressPct.value = 40 + (i / totalChunks) * 55;
+                        progressText.value = `生成二维码 ${i + 1}/${totalChunks}...`;
+
+                        const qr = qrcode(0, 'L');
+                        qr.addData(payload);
+                        qr.make();
+                        const dataUrl = qr.createDataURL(4, 4);
+                        images.push(dataUrl);
+                    }
+
+                    progressPct.value = 100;
+                    progressText.value = '完成！';
+
+                    result.value = {
+                        originalSize: formatSize(input.length),
+                        compressedSize: formatSize(compressedSize),
+                        ratio: ratio + '%',
+                        totalChunks,
+                        images,
+                        chunkSizes,
+                        filename: file.value.name
+                    };
+                } catch (err) {
+                    progressText.value = '错误: ' + err.message;
+                    console.error(err);
+                } finally {
+                    generating.value = false;
+                }
+            };
+
+            const formatSize = (bytes) => {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / 1048576).toFixed(2) + ' MB';
+            };
+
+            const downloadAll = async () => {
+                if (!result.value) return;
+                const images = result.value.images;
+                for (let i = 0; i < images.length; i++) {
+                    const link = document.createElement('a');
+                    link.href = images[i];
+                    link.download = `${result.value.filename}_part${i + 1}.png`;
+                    link.click();
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            };
+
+            const printAll = () => {
+                const win = window.open('', '_blank');
+                const imgs = result.value.images.map((src, i) =>
+                    `<div style="display:inline-block;text-align:center;margin:10px;page-break-inside:avoid;">
+                        <p style="font-size:12px;margin-bottom:4px;">#${i+1}/${result.value.totalChunks}</p>
+                        <img src="${src}" style="width:160px;">
+                    </div>`
+                ).join('');
+                win.document.write(`<html><head><title>二维码</title></head><body style="text-align:center;">${imgs}<script>onload=()=>{print();}<\/script></body></html>`);
+            };
+
+            return {
+                fileInput, file, dragover, chunkBytes, compressionLevel,
+                generating, progressText, progressPct, result,
+                onFileSelect, onDrop, reset, generate, downloadAll, printAll
+            };
+        }
+    }).mount('#app');
+    </script>
+</body>
+</html>
