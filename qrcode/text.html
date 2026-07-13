@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本二维码生成器</title>
+    <script src="vue.global.prod.js"></script>
+    <script src="qrcode-generator.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+        .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+        h1 { text-align: center; margin-bottom: 8px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 24px; font-size: 14px; }
+        .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        textarea { width: 100%; min-height: 160px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: inherit; resize: vertical; line-height: 1.6; }
+        textarea:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 3px rgba(74,144,217,0.15); }
+        .info-bar { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin: 12px 0; font-size: 13px; color: #666; }
+        .info-bar span { padding: 4px 10px; background: #f0f0f0; border-radius: 4px; }
+        .info-bar .warn { background: #fff3cd; color: #856404; }
+        .info-bar .danger { background: #f8d7da; color: #721c24; }
+        .btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; transition: all .2s; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-secondary { background: #e8e8e8; color: #333; }
+        .btn-secondary:hover { background: #ddd; }
+        .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+        .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 20px; }
+        .qr-item { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 16px; text-align: center; page-break-inside: avoid; }
+        .qr-item img { width: 100%; max-width: 200px; image-rendering: pixelated; }
+        .qr-item .qr-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
+        .qr-item .qr-meta { font-size: 11px; color: #999; margin-top: 4px; }
+        .qr-item .qr-data { font-size: 11px; color: #888; margin-top: 6px; word-break: break-all; text-align: left; max-height: 48px; overflow: hidden; background: #f9f9f9; padding: 4px 6px; border-radius: 4px; }
+        .no-result { text-align: center; color: #aaa; padding: 40px; font-size: 15px; }
+        .paste-hint { font-size: 12px; color: #999; margin-top: 4px; }
+        .copy-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 14px; z-index: 999; transition: opacity .3s; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>文本二维码生成器</h1>
+            <p class="subtitle">输入文本，自动生成二维码。超长文本自动分片。</p>
+
+            <div class="card">
+                <textarea v-model="inputText"
+                          placeholder="在此输入文本内容...&#10;支持中英文、URL、JSON、代码等任意文本"
+                          @input="onInput"
+                          ref="textareaRef"></textarea>
+
+                <div class="info-bar">
+                    <span>字符数: {{ charCount }}</span>
+                    <span>字节数: {{ byteCount }}</span>
+                    <span :class="qrCount > 1 ? 'warn' : ''">二维码: {{ qrCount }} 个</span>
+                    <span :class="byteCount > 2953 ? 'danger' : ''">单码上限: 2953 B</span>
+                </div>
+
+                <div class="btns">
+                    <button class="btn btn-primary" @click="generate" :disabled="!inputText.trim()">
+                        生成二维码
+                    </button>
+                    <button class="btn btn-secondary" @click="clear" :disabled="!inputText">清空</button>
+                    <button class="btn btn-secondary" @click="pasteFromClipboard" title="从剪贴板粘贴">粘贴文本</button>
+                </div>
+            </div>
+
+            <div class="card" v-if="results.length > 0">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h3>生成结果 ({{ results.length }} 个)</h3>
+                    <div class="btns" style="margin-top:0;">
+                        <button class="btn btn-secondary" @click="downloadAll">下载全部图片</button>
+                        <button class="btn btn-secondary" @click="printAll">打印</button>
+                    </div>
+                </div>
+
+                <div class="qr-grid">
+                    <div class="qr-item" v-for="(item, i) in results" :key="i">
+                        <div class="qr-label">{{ results.length > 1 ? `#${i + 1} / ${results.length}` : '二维码' }}</div>
+                        <img :src="item.dataUrl" :alt="'二维码 ' + (i+1)">
+                        <div class="qr-meta">{{ item.bytes }} 字节</div>
+                        <div class="qr-data">{{ item.preview }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" v-if="!results.length">
+                <div class="no-result">输入文本后点击「生成二维码」</div>
+            </div>
+        </div>
+
+        <div class="copy-toast" v-if="toastMsg" :style="{ opacity: toastMsg ? 1 : 0 }">{{ toastMsg }}</div>
+    </div>
+
+    <script>
+    const { createApp, ref, computed, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const inputText = ref('');
+            const textareaRef = ref(null);
+            const results = ref([]);
+            const toastMsg = ref('');
+            let toastTimer = null;
+
+            const MAX_BYTES = 2953;
+
+            const charCount = computed(() => inputText.value.length);
+            const byteCount = computed(() => new TextEncoder().encode(inputText.value).byteLength);
+            const qrCount = computed(() => {
+                if (!inputText.value) return 0;
+                return Math.ceil(byteCount.value / MAX_BYTES);
+            });
+
+            const toUtf8Bytes = (str) => new TextEncoder().encode(str);
+
+            const splitText = (text) => {
+                const bytes = toUtf8Bytes(text);
+                if (bytes.length <= MAX_BYTES) return [text];
+
+                const chunks = [];
+                const decoder = new TextDecoder('utf-8', { fatal: true });
+                let offset = 0;
+
+                while (offset < bytes.length) {
+                    let end = Math.min(offset + MAX_BYTES, bytes.length);
+                    // Avoid splitting a multi-byte character
+                    if (end < bytes.length) {
+                        while (end > offset && (bytes[end] & 0xC0) === 0x80) end--;
+                    }
+                    chunks.push(decoder.decode(bytes.subarray(offset, end)));
+                    offset = end;
+                }
+                return chunks;
+            };
+
+            const generate = () => {
+                const text = inputText.value;
+                if (!text.trim()) return;
+
+                const chunks = splitText(text);
+                const images = [];
+
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunkBytes = toUtf8Bytes(chunks[i]);
+                    const payload = chunks.length > 1
+                        ? `${i + 1}/${chunks.length}:${chunks[i]}`
+                        : chunks[i];
+
+                    const qr = qrcode(0, 'L');
+                    qr.addData(payload, 'Byte');
+                    qr.make();
+
+                    images.push({
+                        dataUrl: qr.createDataURL(4, 4),
+                        bytes: chunkBytes.length,
+                        preview: chunks[i].substring(0, 60) + (chunks[i].length > 60 ? '...' : ''),
+                        text: chunks[i]
+                    });
+                }
+
+                results.value = images;
+            };
+
+            const clear = () => {
+                inputText.value = '';
+                results.value = [];
+            };
+
+            const pasteFromClipboard = async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    inputText.value = text;
+                } catch {
+                    showToast('无法访问剪贴板');
+                }
+            };
+
+            const showToast = (msg) => {
+                toastMsg.value = msg;
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => { toastMsg.value = ''; }, 1500);
+            };
+
+            const downloadAll = () => {
+                results.value.forEach((item, i) => {
+                    const link = document.createElement('a');
+                    link.href = item.dataUrl;
+                    link.download = `qrcode_${i + 1}.png`;
+                    link.click();
+                });
+            };
+
+            const printAll = () => {
+                const win = window.open('', '_blank');
+                const imgs = results.value.map((item, i) =>
+                    `<div style="display:inline-block;text-align:center;margin:10px;page-break-inside:avoid;">
+                        <p style="font-size:12px;margin-bottom:4px;">${results.value.length > 1 ? '#' + (i+1) + '/' + results.value.length : ''}</p>
+                        <img src="${item.dataUrl}" style="width:200px;">
+                    </div>`
+                ).join('');
+                win.document.write(`<html><head><title>二维码</title></head><body style="text-align:center;">${imgs}<script>onload=()=>{print();}<\/script></body></html>`);
+            };
+
+            const onInput = () => {
+                results.value = [];
+            };
+
+            return {
+                inputText, textareaRef, results, toastMsg,
+                charCount, byteCount, qrCount,
+                generate, clear, pasteFromClipboard,
+                downloadAll, printAll, onInput
+            };
+        }
+    }).mount('#app');
+    </script>
+</body>
+</html>

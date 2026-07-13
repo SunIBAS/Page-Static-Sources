@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文件二维码分片生成器</title>
-    <script src="./vue.global.prod.js"></script>
-    <script src="./qrcode-generator.js"></script>
-    <script src="./fflate.min.js"></script>
+    <script src="vue.global.prod.js"></script>
+    <script src="qrcode-generator.js"></script>
+    <script src="fflate.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
@@ -169,6 +169,8 @@
                 return btoa(binary);
             };
 
+            const yieldToUI = () => new Promise(r => setTimeout(r, 0));
+
             const generate = async () => {
                 if (!file.value) return;
                 generating.value = true;
@@ -177,49 +179,59 @@
                 try {
                     progressText.value = '读取文件...';
                     progressPct.value = 10;
+                    await yieldToUI();
+
                     const buf = await file.value.arrayBuffer();
                     const input = new Uint8Array(buf);
 
-                    progressText.value = '压缩中...';
-                    progressPct.value = 25;
-                    await new Promise(r => setTimeout(r, 50));
+                    progressText.value = '打包为 ZIP...';
+                    progressPct.value = 20;
+                    await yieldToUI();
 
-                    let compressed;
+                    let binaryData;
                     if (compressionLevel.value === 0) {
-                        compressed = input;
+                        binaryData = input;
                     } else {
-                        compressed = fflate.deflateSync(input, { level: compressionLevel.value });
+                        const zip = fflate.zipSync(
+                            { [file.value.name]: fflate.deflateSync(input, { level: compressionLevel.value }) }
+                        );
+                        binaryData = new Uint8Array(zip);
                     }
 
-                    const compressedSize = compressed.length;
-                    const ratio = ((1 - compressedSize / input.length) * 100).toFixed(1);
-                    progressText.value = `压缩完成: ${formatSize(input.length)} → ${formatSize(compressedSize)} (${ratio}% 减少)`;
-                    progressPct.value = 40;
-                    await new Promise(r => setTimeout(r, 200));
+                    const dataSize = binaryData.length;
+                    const ratio = ((1 - dataSize / input.length) * 100).toFixed(1);
+                    const ratioText = compressionLevel.value === 0 ? '未压缩' : ratio + '% 减少';
+                    progressText.value = `打包完成: ${formatSize(input.length)} → ${formatSize(dataSize)} (${ratioText})`;
+                    progressPct.value = 30;
+                    await yieldToUI();
 
                     const cs = chunkBytes.value;
-                    const totalChunks = Math.ceil(compressedSize / cs);
-                    progressText.value = `分为 ${totalChunks} 片，正在生成二维码...`;
+                    const totalChunks = Math.ceil(dataSize / cs);
+                    progressText.value = `分为 ${totalChunks} 片，开始生成二维码...`;
+                    await yieldToUI();
 
                     const images = [];
                     const chunkSizes = [];
                     for (let i = 0; i < totalChunks; i++) {
                         const start = i * cs;
-                        const end = Math.min(start + cs, compressedSize);
-                        const slice = compressed.slice(start, end);
+                        const end = Math.min(start + cs, dataSize);
+                        const slice = binaryData.slice(start, end);
                         chunkSizes.push(end - start);
 
                         const b64 = toBase64(slice);
                         const payload = `${i + 1}/${totalChunks}:${b64}`;
 
-                        progressPct.value = 40 + (i / totalChunks) * 55;
-                        progressText.value = `生成二维码 ${i + 1}/${totalChunks}...`;
+                        progressPct.value = 30 + (i / totalChunks) * 65;
+                        if (i % 5 === 0) {
+                            progressText.value = `生成二维码 ${i + 1}/${totalChunks}...`;
+                        }
 
                         const qr = qrcode(0, 'L');
                         qr.addData(payload);
                         qr.make();
-                        const dataUrl = qr.createDataURL(4, 4);
-                        images.push(dataUrl);
+                        images.push(qr.createDataURL(4, 4));
+
+                        if (i % 10 === 0) await yieldToUI();
                     }
 
                     progressPct.value = 100;
@@ -227,8 +239,8 @@
 
                     result.value = {
                         originalSize: formatSize(input.length),
-                        compressedSize: formatSize(compressedSize),
-                        ratio: ratio + '%',
+                        compressedSize: formatSize(dataSize),
+                        ratio: compressionLevel.value === 0 ? '未压缩' : ratio + '%',
                         totalChunks,
                         images,
                         chunkSizes,
