@@ -49,12 +49,29 @@
 
 
 
-    let scanner=
+    let scanner =
         new Html5QrcodeScanner(
             "reader",
             {
-                fps:10,
-                qrbox:250
+                fps:15,
+
+                qrbox:function(width,height)
+                {
+
+                    let size =
+                        Math.floor(
+                            Math.min(width,height)*0.9
+                        );
+
+
+                    return {
+                        width:size,
+                        height:size
+                    };
+
+                },
+
+                aspectRatio:1
             }
         );
 
