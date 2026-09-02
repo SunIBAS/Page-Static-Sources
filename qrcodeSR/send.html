@@ -1,45 +1,93 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+
     <meta charset="UTF-8">
-    <title>QR File Sender</title>
+
+    <title>
+        QR File Sender
+    </title>
+
 
     <script src="./qrcodegen-v1.8.0-es5.js"></script>
 
+
     <style>
 
-        #qr{
-            display:grid;
+
+        body{
+
+            font-family:Arial;
+
         }
 
-        .cell{
-            width:8px;
-            height:8px;
-        }
 
         button{
-            font-size:20px;
-            margin:10px;
+
+            font-size:18px;
+
+            margin:5px;
+
         }
+
+
+        input{
+
+            font-size:18px;
+
+        }
+
+
+
+        #qr{
+
+            display:grid;
+
+            padding:30px;
+
+            background:white;
+
+        }
+
+
+
+        .cell{
+
+            display:block;
+
+        }
+
 
     </style>
 
+
 </head>
+
 
 <body>
 
 
-<h2>电脑 → 手机 QR 文件发送</h2>
+
+<h2>
+    电脑 → 手机二维码文件发送
+</h2>
 
 
-<input type="file" id="file">
+
+<input
+        type="file"
+        id="file"
+>
 
 
-<br>
+<br><br>
+
 
 <button onclick="start()">
     生成
 </button>
+
 
 
 <button onclick="next()">
@@ -47,33 +95,86 @@
 </button>
 
 
-<h3 id="info"></h3>
+
+<button onclick="play()">
+    ▶播放
+</button>
+
+
+
+<button onclick="pause()">
+    ⏸暂停
+</button>
+
+
+
+<br><br>
+
+
+<input
+        id="jump"
+        type="number"
+        placeholder="输入编号"
+/>
+
+
+<button onclick="jumpTo()">
+    跳转
+</button>
+
+
+
+<h3 id="info">
+    等待文件
+</h3>
+
 
 
 <div id="qr"></div>
 
 
 
+
+
 <script>
 
 
-    const QRC=qrcodegen.QrCode;
+
+    const QRC =
+        qrcodegen.QrCode;
 
 
 
-    // 每个二维码携带的数据大小
-    // 可以根据二维码大小调整
+
+    // 每个二维码的数据量
+    // 可以自行调整
     const CHUNK_SIZE=700;
+
+
+
+
+    // 自动播放速度
+    // ms
+    const PLAY_INTERVAL=1500;
 
 
 
     let chunks=[];
 
+
     let filename="";
+
 
     let current=0;
 
+
     let total=0;
+
+
+
+    let timer=null;
+
+
 
 
 
@@ -81,30 +182,40 @@
     async function start()
     {
 
-        let f=
-            document.getElementById("file").files[0];
+        pause();
 
 
-        if(!f)
+        let file=
+            document
+                .getElementById("file")
+                .files[0];
+
+
+
+        if(!file)
         {
             alert("请选择文件");
             return;
         }
 
 
-        filename=f.name;
+
+        filename=file.name;
 
 
-        let buf=
-            await f.arrayBuffer();
+
+        let buffer=
+            await file.arrayBuffer();
+
 
 
         let bytes=
-            new Uint8Array(buf);
+            new Uint8Array(buffer);
 
 
 
         chunks=[];
+
 
 
         for(
@@ -128,7 +239,9 @@
         }
 
 
+
         total=chunks.length;
+
 
         current=0;
 
@@ -140,15 +253,25 @@
 
 
 
+
     function base64Encode(bytes)
     {
 
         let str="";
 
 
-        for(let i=0;i<bytes.length;i++)
+        for(
+            let i=0;
+            i<bytes.length;
+            i++
+        )
         {
-            str+=String.fromCharCode(bytes[i]);
+
+            str+=
+                String.fromCharCode(
+                    bytes[i]
+                );
+
         }
 
 
@@ -160,8 +283,29 @@
 
 
 
+
     function show()
     {
+
+        if(chunks.length==0)
+        {
+            return;
+        }
+
+
+
+        /*
+
+		格式：
+
+		QRFILE|
+		文件名|
+		总数量|
+		当前编号|
+		数据
+
+		*/
+
 
         let text=
             [
@@ -170,8 +314,10 @@
                 total,
                 current,
                 chunks[current]
-            ]
-                .join("|");
+
+            ].join("|");
+
+
 
 
 
@@ -187,13 +333,33 @@
 
 
 
-        document.getElementById("info").innerHTML=
+
+        document
+            .getElementById("info")
+            .innerHTML=
             `
-    ${filename}<br>
-    ${current+1}/${total}
+    文件:
+    ${filename}
+
     <br>
-    字符:${text.length}
+
+    当前:
+    ${current+1}
+    /
+    ${total}
+
+    <br>
+
+    数据编号:
+    ${current}
+
+    <br>
+
+    字符长度:
+    ${text.length}
+
     `;
+
 
 
     }
@@ -211,14 +377,129 @@
         }
 
 
-        if(current<total-1)
+
+        if(current < total-1)
         {
+
             current++;
 
             show();
+
+        }
+        else
+        {
+
+            pause();
+
+            alert("已经是最后一张");
+
         }
 
     }
+
+
+
+
+
+    function play()
+    {
+
+        if(timer)
+        {
+            return;
+        }
+
+
+
+        timer=
+            setInterval(
+                ()=>{
+                    next();
+                },
+                PLAY_INTERVAL
+            );
+
+    }
+
+
+
+
+
+    function pause()
+    {
+
+        if(timer)
+        {
+
+            clearInterval(timer);
+
+            timer=null;
+
+        }
+
+    }
+
+
+
+
+
+
+    function jumpTo()
+    {
+
+        if(chunks.length==0)
+        {
+            return;
+        }
+
+
+
+        let n=
+            parseInt(
+                document
+                    .getElementById("jump")
+                    .value
+            );
+
+
+
+        if(isNaN(n))
+        {
+            return;
+        }
+
+
+
+        /*
+		   用户输入:
+		   1 表示第一张
+
+		   内部:
+		   0开始
+		*/
+
+
+        n--;
+
+
+
+        if(
+            n>=0 &&
+            n<total
+        )
+        {
+
+            current=n;
+
+            show();
+
+        }
+
+
+    }
+
+
+
 
 
 
@@ -227,13 +508,18 @@
     {
 
         let div=
-            document.getElementById("qr");
+            document
+                .getElementById("qr");
+
 
 
         div.innerHTML="";
 
 
-        let size=8;
+
+        // 二维码模块大小
+        let size=15;
+
 
 
         div.style=
@@ -260,10 +546,22 @@
 
 
                 let e=
-                    document.createElement("i");
+                    document
+                        .createElement("i");
+
 
 
                 e.className="cell";
+
+
+
+                e.style.width=
+                    size+"px";
+
+
+                e.style.height=
+                    size+"px";
+
 
 
                 e.style.background=
@@ -274,18 +572,24 @@
                         "#fff";
 
 
+
                 div.appendChild(e);
+
 
             }
 
         }
 
-
     }
+
+
+
 
 
 </script>
 
 
 </body>
+
+
 </html>

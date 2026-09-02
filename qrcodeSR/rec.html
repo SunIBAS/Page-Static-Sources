@@ -1,17 +1,46 @@
 <!DOCTYPE html>
-
 <html>
+
 
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <title>
-        QR Receiver
-    </title>
+<title>
+QR File Receiver
+</title>
 
 
-    <script src="./html5-qrcode.min.js"></script>
+<script src="./html5-qrcode.min.js"></script>
+
+
+<style>
+
+
+body{
+
+    font-family:Arial;
+
+}
+
+
+button{
+
+    font-size:18px;
+
+    margin:5px;
+
+}
+
+
+#info{
+
+    font-size:18px;
+
+}
+
+
+</style>
 
 
 </head>
@@ -21,18 +50,30 @@
 
 
 <h2>
-    手机接收文件
+手机接收二维码文件
 </h2>
+
 
 
 <div id="reader"></div>
 
 
-<h3 id="info"></h3>
+
+<div id="info">
+
+等待扫描...
+
+</div>
+
+
+
+<br>
 
 
 <button onclick="downloadFile()">
-    下载文件
+
+下载文件
+
 </button>
 
 
@@ -40,193 +81,430 @@
 <script>
 
 
-    let fileName="";
 
-    let total=0;
-
-
-    let parts={};
+let fileName="";
 
 
-
-    let scanner =
-        new Html5QrcodeScanner(
-            "reader",
-            {
-                fps:15,
-
-                qrbox:function(width,height)
-                {
-
-                    let size =
-                        Math.floor(
-                            Math.min(width,height)*0.9
-                        );
+let total=0;
 
 
-                    return {
-                        width:size,
-                        height:size
-                    };
 
-                },
+// 保存数据
+let parts={};
 
-                aspectRatio:1
-            }
+
+
+let scanning=true;
+
+
+
+
+
+const scanner =
+new Html5QrcodeScanner(
+    "reader",
+    {
+
+        fps:15,
+
+
+        qrbox:function(w,h)
+        {
+
+            let size=
+            Math.floor(
+                Math.min(w,h)*0.85
+            );
+
+
+            return {
+
+                width:size,
+
+                height:size
+
+            };
+
+        }
+
+
+    }
+);
+
+
+
+
+
+scanner.render(
+    onScan,
+    onError
+);
+
+
+
+
+
+
+function onError(err)
+{
+
+    // 忽略扫描失败
+
+}
+
+
+
+
+
+
+
+function onScan(text)
+{
+
+
+    if(!scanning)
+    {
+        return;
+    }
+
+
+
+    let arr=
+    text.split("|");
+
+
+
+    if(arr.length<5)
+    {
+        return;
+    }
+
+
+
+    if(arr[0]!="QRFILE")
+    {
+        return;
+    }
+
+
+
+    fileName=arr[1];
+
+
+
+    total=
+    parseInt(arr[2]);
+
+
+
+    let index=
+    parseInt(arr[3]);
+
+
+
+    let data=
+    arr.slice(4).join("|");
+
+
+
+    // 防止重复扫描
+    if(!parts[index])
+    {
+
+        parts[index]=data;
+
+    }
+
+
+
+    showStatus();
+
+
+
+}
+
+
+
+
+
+
+
+function showStatus()
+{
+
+
+    let count=
+    Object.keys(parts).length;
+
+
+
+    let missing=
+    getMissing();
+
+
+
+    let html=
+    `
+
+    文件:
+    ${fileName}
+
+    <br>
+
+
+    进度:
+    ${count}/${total}
+
+
+    <br>
+
+
+    已完成:
+    ${Math.floor(count/total*100)}%
+
+
+    <br>
+
+
+    缺少:
+    ${missing.length}
+
+
+    <br>
+
+
+    `;
+
+
+
+    if(missing.length>0)
+    {
+
+
+        html+=
+        `
+
+
+        缺少编号:
+
+        <br>
+
+
+        ${
+
+        missing
+        .slice(0,100)
+        .join(",")
+
+        }
+
+
+        `;
+
+
+    }
+    else if(total>0)
+    {
+
+        html+=
+        `
+
+        <br>
+
+        全部收到，可以下载
+
+        `;
+
+    }
+
+
+
+    document
+    .getElementById("info")
+    .innerHTML=html;
+
+
+}
+
+
+
+
+
+
+
+function getMissing()
+{
+
+    let result=[];
+
+
+    for(
+        let i=0;
+        i<total;
+        i++
+    )
+    {
+
+        if(!parts[i])
+        {
+
+            // 显示编号从1开始
+            result.push(i+1);
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+
+
+
+
+
+
+function downloadFile()
+{
+
+
+    if(total==0)
+    {
+
+        alert("还没有文件");
+
+        return;
+
+    }
+
+
+
+
+    let missing=
+    getMissing();
+
+
+
+    if(missing.length>0)
+    {
+
+        alert(
+        "还有 "+
+        missing.length+
+        " 个二维码未收到"
         );
 
 
+        return;
 
-    scanner.render(
-        onScan
+    }
+
+
+
+
+
+    let buffers=[];
+
+
+
+    for(
+        let i=0;
+        i<total;
+        i++
+    )
+    {
+
+        buffers.push(
+            base64Decode(parts[i])
+        );
+
+    }
+
+
+
+
+    let blob=
+    new Blob(
+        buffers,
+        {
+            type:
+            "application/octet-stream"
+        }
     );
 
 
 
-    function onScan(text)
+    let a=
+    document.createElement("a");
+
+
+
+    a.href=
+    URL.createObjectURL(blob);
+
+
+
+    a.download=fileName;
+
+
+
+    a.click();
+
+
+
+}
+
+
+
+
+
+
+
+
+
+function base64Decode(str)
+{
+
+    let binary=
+    atob(str);
+
+
+
+    let bytes=
+    new Uint8Array(
+        binary.length
+    );
+
+
+
+    for(
+        let i=0;
+        i<binary.length;
+        i++
+    )
     {
 
-
-        let arr=
-            text.split("|");
-
-
-
-        if(arr[0]!="QRFILE")
-        {
-            return;
-        }
-
-
-
-        fileName=arr[1];
-
-        total=
-            parseInt(arr[2]);
-
-
-
-        let index=
-            parseInt(arr[3]);
-
-
-
-        parts[index]=arr[4];
-
-
-
-        document.getElementById("info").innerHTML=
-            `
-    ${fileName}
-    <br>
-    已收到:
-    ${Object.keys(parts).length}
-    /
-    ${total}
-    `;
-
+        bytes[i]=
+        binary.charCodeAt(i);
 
     }
 
 
 
+    return bytes;
 
 
-    function downloadFile()
-    {
+}
 
-
-        if(
-            Object.keys(parts).length
-            !=
-            total
-        )
-        {
-            alert("还有二维码没有扫描");
-
-            return;
-        }
-
-
-
-        let list=[];
-
-
-        for(
-            let i=0;
-            i<total;
-            i++
-        )
-        {
-
-            list.push(
-                base64Decode(parts[i])
-            );
-
-        }
-
-
-
-        let blob=
-            new Blob(
-                list,
-                {
-                    type:"application/octet-stream"
-                }
-            );
-
-
-
-        let a=
-            document.createElement("a");
-
-
-        a.href=
-            URL.createObjectURL(blob);
-
-
-        a.download=fileName;
-
-
-        a.click();
-
-
-    }
-
-
-
-
-    function base64Decode(str)
-    {
-
-        let bin=
-            atob(str);
-
-
-        let arr=
-            new Uint8Array(
-                bin.length
-            );
-
-
-        for(
-            let i=0;
-            i<bin.length;
-            i++
-        )
-        {
-            arr[i]=
-                bin.charCodeAt(i);
-        }
-
-
-        return arr;
-
-    }
 
 
 </script>
 
 
 </body>
+
+
 </html>
