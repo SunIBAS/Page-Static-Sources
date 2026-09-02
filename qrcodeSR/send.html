@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>QR File Sender</title>
+
+    <script src="./qrcodegen-v1.8.0-es5.js"></script>
+
+    <style>
+
+        #qr{
+            display:grid;
+        }
+
+        .cell{
+            width:8px;
+            height:8px;
+        }
+
+        button{
+            font-size:20px;
+            margin:10px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+<h2>电脑 → 手机 QR 文件发送</h2>
+
+
+<input type="file" id="file">
+
+
+<br>
+
+<button onclick="start()">
+    生成
+</button>
+
+
+<button onclick="next()">
+    下一张
+</button>
+
+
+<h3 id="info"></h3>
+
+
+<div id="qr"></div>
+
+
+
+<script>
+
+
+    const QRC=qrcodegen.QrCode;
+
+
+
+    // 每个二维码携带的数据大小
+    // 可以根据二维码大小调整
+    const CHUNK_SIZE=700;
+
+
+
+    let chunks=[];
+
+    let filename="";
+
+    let current=0;
+
+    let total=0;
+
+
+
+
+    async function start()
+    {
+
+        let f=
+            document.getElementById("file").files[0];
+
+
+        if(!f)
+        {
+            alert("请选择文件");
+            return;
+        }
+
+
+        filename=f.name;
+
+
+        let buf=
+            await f.arrayBuffer();
+
+
+        let bytes=
+            new Uint8Array(buf);
+
+
+
+        chunks=[];
+
+
+        for(
+            let i=0;
+            i<bytes.length;
+            i+=CHUNK_SIZE
+        )
+        {
+
+            let part=
+                bytes.slice(
+                    i,
+                    i+CHUNK_SIZE
+                );
+
+
+            chunks.push(
+                base64Encode(part)
+            );
+
+        }
+
+
+        total=chunks.length;
+
+        current=0;
+
+
+        show();
+
+    }
+
+
+
+
+    function base64Encode(bytes)
+    {
+
+        let str="";
+
+
+        for(let i=0;i<bytes.length;i++)
+        {
+            str+=String.fromCharCode(bytes[i]);
+        }
+
+
+        return btoa(str);
+
+    }
+
+
+
+
+
+    function show()
+    {
+
+        let text=
+            [
+                "QRFILE",
+                filename,
+                total,
+                current,
+                chunks[current]
+            ]
+                .join("|");
+
+
+
+        let qr=
+            QRC.encodeText(
+                text,
+                QRC.Ecc.LOW
+            );
+
+
+
+        draw(qr);
+
+
+
+        document.getElementById("info").innerHTML=
+            `
+    ${filename}<br>
+    ${current+1}/${total}
+    <br>
+    字符:${text.length}
+    `;
+
+
+    }
+
+
+
+
+
+    function next()
+    {
+
+        if(chunks.length==0)
+        {
+            return;
+        }
+
+
+        if(current<total-1)
+        {
+            current++;
+
+            show();
+        }
+
+    }
+
+
+
+
+    function draw(obj)
+    {
+
+        let div=
+            document.getElementById("qr");
+
+
+        div.innerHTML="";
+
+
+        let size=8;
+
+
+        div.style=
+            `
+    grid-template-columns:
+    repeat(${obj.size},${size}px)
+    `;
+
+
+
+        for(
+            let y=0;
+            y<obj.size;
+            y++
+        )
+        {
+
+            for(
+                let x=0;
+                x<obj.size;
+                x++
+            )
+            {
+
+
+                let e=
+                    document.createElement("i");
+
+
+                e.className="cell";
+
+
+                e.style.background=
+                    obj.getModule(x,y)
+                        ?
+                        "#000"
+                        :
+                        "#fff";
+
+
+                div.appendChild(e);
+
+            }
+
+        }
+
+
+    }
+
+
+</script>
+
+
+</body>
+</html>

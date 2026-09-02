@@ -23,6 +23,11 @@
 | [rubiks-cube](./rubiks-cube/index.html)           | 魔方                       |
 | [geojson.io](./geojson.io/index.html)             | 模仿实现 geojson.io 功能 |
 
+- QRCode 传输
+
+| [qrcode send](./qrcodeSR/send.html)             | 二维码传输，发送方 |
+| [qrcode rec](./qrcodeSR/rec.html)             | 二维码传输，接收方 |
+
 - 画板
 
 | Link                                              | Descript                 |

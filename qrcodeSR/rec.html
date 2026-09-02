@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>
+        QR Receiver
+    </title>
+
+
+    <script src="./html5-qrcode.min.js"></script>
+
+
+</head>
+
+
+<body>
+
+
+<h2>
+    手机接收文件
+</h2>
+
+
+<div id="reader"></div>
+
+
+<h3 id="info"></h3>
+
+
+<button onclick="downloadFile()">
+    下载文件
+</button>
+
+
+
+<script>
+
+
+    let fileName="";
+
+    let total=0;
+
+
+    let parts={};
+
+
+
+    let scanner=
+        new Html5QrcodeScanner(
+            "reader",
+            {
+                fps:10,
+                qrbox:250
+            }
+        );
+
+
+
+    scanner.render(
+        onScan
+    );
+
+
+
+    function onScan(text)
+    {
+
+
+        let arr=
+            text.split("|");
+
+
+
+        if(arr[0]!="QRFILE")
+        {
+            return;
+        }
+
+
+
+        fileName=arr[1];
+
+        total=
+            parseInt(arr[2]);
+
+
+
+        let index=
+            parseInt(arr[3]);
+
+
+
+        parts[index]=arr[4];
+
+
+
+        document.getElementById("info").innerHTML=
+            `
+    ${fileName}
+    <br>
+    已收到:
+    ${Object.keys(parts).length}
+    /
+    ${total}
+    `;
+
+
+    }
+
+
+
+
+
+    function downloadFile()
+    {
+
+
+        if(
+            Object.keys(parts).length
+            !=
+            total
+        )
+        {
+            alert("还有二维码没有扫描");
+
+            return;
+        }
+
+
+
+        let list=[];
+
+
+        for(
+            let i=0;
+            i<total;
+            i++
+        )
+        {
+
+            list.push(
+                base64Decode(parts[i])
+            );
+
+        }
+
+
+
+        let blob=
+            new Blob(
+                list,
+                {
+                    type:"application/octet-stream"
+                }
+            );
+
+
+
+        let a=
+            document.createElement("a");
+
+
+        a.href=
+            URL.createObjectURL(blob);
+
+
+        a.download=fileName;
+
+
+        a.click();
+
+
+    }
+
+
+
+
+    function base64Decode(str)
+    {
+
+        let bin=
+            atob(str);
+
+
+        let arr=
+            new Uint8Array(
+                bin.length
+            );
+
+
+        for(
+            let i=0;
+            i<bin.length;
+            i++
+        )
+        {
+            arr[i]=
+                bin.charCodeAt(i);
+        }
+
+
+        return arr;
+
+    }
+
+
+</script>
+
+
+</body>
+</html>
